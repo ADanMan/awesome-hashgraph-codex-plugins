@@ -53,12 +53,14 @@ CDN remains the right choice for Persona.
 
 **Pin an exact version on Runtype-deployed pages.** A deployed app bundle is immutable and
 cached, so on a `static` app (or any Runtype-hosted page) replace `latest` with a pinned
-version like `https://cdn.runtype.com/persona/4.6.0/...` so a new release never shifts the
+version like `https://cdn.runtype.com/persona/<version>/...` (the current `@runtypelabs/persona` release on npm) so a new release never shifts the
 widget code underneath your shipped bundle.
 
 ## Client token
 
 Persona uses a `clientToken`, created with `create_client_token`, for browser-side chat access. This is not a surface key. Client tokens are public, scoped to specific agents or flows, and can be constrained with origin and rate-limit settings.
+
+A chat surface is optional: a token that names the agent in `agentIds` works on its own. Pair it with `data-agent-id="agent_..."` on the script tag or `config.agentId` in `initAgentWidget`. For config-as-code, `Runtype.clientTokens.ensure({ name, agentIds, allowedOrigins })` from `@runtypelabs/sdk` finds the token by name, creates or converges it, and returns its value.
 
 ## Current defaults to preserve
 

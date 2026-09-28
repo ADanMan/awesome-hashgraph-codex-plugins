@@ -34,9 +34,12 @@ redoing the adaptation; say so if `status` is not `revising` or `complete`.
   `publishing`); audio and film rights one-sheets live there
 - NOT for query letters or agent submission (use `submission`)
 - NOT for new prose in the source book (use `chapter-writing`)
-- Nonfiction and poetry are outside the story project model. The CLI
-  checks fiction entities (characters, chapters, scenes, continuity); do
-  not force a poetry collection or nonfiction book into it.
+- NOT for writing or scanning verse, including rhyming picture-book text
+  (use `verse-craft`)
+- Nonfiction and poetry collections are outside the story project model.
+  The CLI checks fiction entities (characters, chapters, scenes,
+  continuity); do not force a poetry collection or nonfiction book into
+  it.
 
 ## Hard Rules
 
@@ -71,7 +74,8 @@ Follow `references/audiobook.md`.
 
    It opens with the pronunciation guide table, then each chapter with its
    estimated finished runtime (155 words per minute), scene breaks as
-   `[pause]`, and the total runtime.
+   `[pause]`, and the total runtime. `--out` never replaces an existing
+   file under `adaptations/`, so delete the old script before a rebuild.
 3. Review the script for what reads badly aloud: long dialogue runs
    without tags, visual-only jokes, footnotes, maps, letters and texts,
    tables. Record fixes as narrator notes in
@@ -85,14 +89,34 @@ Follow `references/audiobook.md`.
 
 Follow `references/fountain.md`.
 
-1. Build the scene list from scene records (reading order, or
+1. Add `setting: interior`, `exterior`, or `both` to each location the
+   scenes use, and to any scene whose place differs from its location's
+   (on the harbor wall, not in the harbor office). Ask the author when the
+   prose does not settle it. Run `story validate .`.
+2. Build the scene list from scene records (reading order, or
    `story timeline .` for story-time order). Each scene becomes one or
-   more sluglines from its `location`, `time`, and `characters`.
-2. Mark each scene keep, merge, cut, or externalize (interior moments that
+   more sluglines from its `location`, `setting`, `time`, and
+   `characters`.
+3. Mark each scene keep, merge, cut, or externalize (interior moments that
    need an action or line). Save it as
    `adaptations/screenplay/scene-list.md`.
-3. Write `adaptations/screenplay/{story-id}.fountain`. Draft act by act
-   and check length at about one page per minute.
+4. Start the script from the scene records:
+
+   ```shell
+   story build . --format fountain --out adaptations/screenplay/{story-id}.fountain
+   ```
+
+   It writes a title page, a `##` section per chapter, and one scene
+   heading per scene record with the source scene id, cast, and scene
+   notes as unprinted `[[...]]` notes. It carries no prose: the build
+   cannot adapt, so every line of action and dialogue is yours to write.
+   A forced heading (`.LAMP ROOM - DUSK`) means the scene and its location
+   have no `setting`; fix the record or the heading. `--out` never
+   replaces an existing file under `adaptations/`, so once the script is
+   drafted, build to `dist/` instead to compare a new skeleton with it.
+5. Apply the scene list's decisions to the skeleton, then draft act by
+   act and check length at about one page per minute. Keep each scene's
+   `[[Source: ...]]` note.
 
 ### 3. Picture book
 
@@ -103,7 +127,11 @@ Follow `references/picture-book.md`.
 2. Make the pagination plan in `adaptations/picture-book/pagination.md`:
    32 pages, 14 spreads of story, a page-turn beat on each spread.
 3. Keep the text in chapters, one chapter per spread, and the
-   illustration briefs and art notes in the plan, not the prose.
+   illustration briefs and art notes in the plan, not the prose (text in a
+   chapter is counted and ships in every build). Give each spread one
+   scene record and a `hook` for its page-turn beat, and set `story.md`
+   to `status: revising` once all spreads are drafted; see "Spreads And
+   The CLI Checks" in the reference for the warnings this clears.
 
 ### 4. Comics or graphic novel script
 
@@ -115,9 +143,37 @@ panels, captions, balloons, and SFX in
 ### 5. Interactive fiction
 
 Follow `references/interactive-fiction.md`. Map the linear scenes to nodes,
-choose a branching structure with the author, record the branch map in
-`adaptations/interactive/branch-map.md`, and write the source for the
-chosen tool (Ink `.ink` or Twine `.twee`) in `adaptations/interactive/`.
+choose a branching structure with the author, and record the branch map in
+`adaptations/interactive/branch-map.md`.
+
+- **Twine:** make the interactive edition its own project (copy the
+  source project without `dist/`, as for a translation), one chapter per
+  passage, with `choices` frontmatter (`text` and `to`) on each chapter
+  that branches. Check and build it:
+
+  ```shell
+  story validate .
+  story links .
+  story build . --format twee --out adaptations/interactive/{story-id}.twee
+  ```
+
+  Fix every `links` warning about a chapter no choice path reaches.
+  `--out` never replaces an existing file under `adaptations/`, so delete
+  the old `.twee` before a rebuild.
+- **Ink:** set up the interactive edition project the same way, check it
+  with the same commands, and build it:
+
+  ```shell
+  story build . --format ink --out adaptations/interactive/{story-id}.ink
+  ```
+
+  Open the `.ink` file in Inky, or compile it with `inklecate`. The build
+  escapes ink syntax in chapter prose, so write ink state (`VAR`, `~`,
+  `{ }`) by hand in the built file, and only once the branch structure is
+  settled: `--out` never replaces an existing file, and a rebuild after
+  changing `choices` means deleting the old `.ink` and carrying the
+  hand-written logic into the new one. Ask the author before deleting a
+  file that has hand-written logic in it.
 
 ### 6. Translation
 
@@ -167,8 +223,8 @@ Follow `references/translation.md`.
 
 Use the Story CLI when it is available. If `story` is not installed, use `bun run story --` from the Story Skills repository checkout or the bundled fallback `node ../story-maintenance/scripts/story.js` with the same arguments, resolving the path relative to this skill folder. If no CLI is available, write the narration script and scene lists by hand from the chapter and scene files.
 
-After adding `pronunciation` or glossary translations, or setting `form` or
-`language`:
+After adding `pronunciation`, `setting`, or glossary translations, or
+setting `form` or `language`:
 
 ```shell
 story reindex .
@@ -176,8 +232,10 @@ story links .
 story validate .
 ```
 
-After changing chapters in a picture-book or translated project, also run
-`story wordcount . --write`.
+After changing chapters in a picture-book, translated, or interactive
+project, also run `story wordcount . --write`. After adding, retargeting,
+or removing `choices`, run `story links .` and rebuild the Twee or ink file.
+`story move` and `story remove` keep `choices` targets in step.
 
 ## Reference Files
 
@@ -185,5 +243,5 @@ After changing chapters in a picture-book or translated project, also run
 - **`references/fountain.md`** - Scene-list-from-scene-records method, novel-to-screen choices, and Fountain syntax
 - **`references/picture-book.md`** - 32-page and 14-spread pagination, page-turn beats, text and illustration interplay, spread brief template, and art notes
 - **`references/comics-script.md`** - Page and panel script format, pacing per page, balloon limits, and page-turn reveals
-- **`references/interactive-fiction.md`** - Branch maps from scenes, branching structures, state, and Ink and Twine syntax
+- **`references/interactive-fiction.md`** - Branch maps from scenes, branching structures, state, chapter `choices` and the Twee and ink builds, and Ink and Twine syntax
 - **`references/translation.md`** - Glossary as term base, per-language style sheets, name decisions, and continuity across language editions

@@ -6,11 +6,9 @@ Forms are often where users complete their goals—signing up, checking out, sub
 
 ## Form Design Principles
 
-### Key Statistics
+### Why It Matters
 
-- **81%** of users abandon forms after starting
-- Reducing form fields by **20-60%** often loses no necessary data
-- Multi-step forms can increase completion by **86%**
+Every extra field costs completion. Ask only for what the task needs, and split long forms into short steps.
 
 ### Fundamental Principles
 
@@ -465,7 +463,7 @@ Avoid: Different topics side by side
 - [ ] Keyboard navigation works correctly
 - [ ] Focus management on errors
 - [ ] Sufficient color contrast
-- [ ] Touch targets at least 44×44px
+- [ ] Touch targets 44×44px (never below the 24×24 WCAG AA floor)
 
 ---
 

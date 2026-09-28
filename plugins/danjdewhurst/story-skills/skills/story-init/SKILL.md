@@ -16,7 +16,7 @@ Initialize a new story project with a structured markdown folder layout. Creates
 - NOT for adding to an existing story project (use the domain-specific skills instead)
 - NOT for a sequel, prequel, or companion to an existing book: use `series-continuity`, which links the projects and carries canon across
 - NOT for finding the idea itself: when the user has only a vague notion ("something about lighthouses"), several competing ideas, or no premise yet, run the `premise-workshop` skill first, then return here with the chosen premise, form, and genre
-- NOT for converting an existing manuscript or chapter drafts: run `story import <source> --title "{Title}"` instead, then build out the bible from the entity candidates it prints
+- NOT for converting an existing manuscript or chapter drafts: run `story import <source> --title '{Title}'` instead, then build out the bible from the entity candidates it prints. Import does not accept `--form`, so afterwards set `form` and `target-words` in `story.md` by hand (see the form list and defaults below); without them `story validate` never checks length and `story progress` has no target
 
 ## Workflow
 
@@ -33,14 +33,18 @@ Initialize a new story project with a structured markdown folder layout. Creates
 If the Story CLI is available, prefer using it to create the starter project, then inspect and refine the generated files as needed:
 
 ```shell
-story init "{Title}" --form "{form}" --genre "{genre}" --sub-genre "{sub-genre}" --setting-era "{era}" --pov "{pov-style}" --tense "{tense}" --synopsis "{synopsis}" --theme "{theme-1}" --theme "{theme-2}"
+story init '{Title}' --form '{form}' --genre '{genre}' --sub-genre '{sub-genre}' --setting-era '{era}' --pov '{pov-style}' --tense '{tense}' --synopsis '{synopsis}' --theme '{theme-1}' --theme '{theme-2}'
 ```
+
+The values are the user's own words, so quote each one for the shell: wrap it in single quotes and write any single quote inside it as `'\''`. Never paste a value into double quotes, where `$(...)`, backticks, and `"` still take effect.
 
 `--form` records `form` in `story.md` and, when no target is given, sets a default `target-words` for the form (novel 80,000, novella 30,000, novelette 12,000, short story 5,000, flash 1,000, chapter book 10,000, picture book 500; serials get no book-level default). `story validate` then warns when `target-words` is outside the form's usual range. For short forms, point the user to `references/short-story-form.md` in the `plot-structure` skill.
 
 Publishing metadata (`isbn`, `publisher`, `publication-date`, `description`, `keywords`, `subjects`, `copyright`, `cover-alt`, `ai-disclosure`, `language`) is optional and can wait until the book is ready to publish; the `publishing` skill fills it in. Do not ask for it at init.
 
-The story id recorded in every registry is the kebab-case form of the title (`--dir` sets only the directory). A title with no ASCII letters or digits, such as `Война и мир`, needs `--dir` with an ASCII folder name, and the story id then comes from the folder name. `init` refuses an existing directory unless you pass `--force`; with `--force` it only creates missing starter files and never overwrites an existing `story.md`, registry, timeline, or `continuity/state.md`.
+The story id recorded in every registry is the kebab-case form of the title (`--dir` sets only the directory). A title with no ASCII letters or digits, such as `Война и мир`, needs `--dir` with an ASCII folder name, and the story id then comes from the folder name. The id is recomputed from the title on every run, so it changes whenever the title does: after editing `title` in `story.md`, run `story reindex .` to rewrite the id in every registry, `plot/timeline.md`, and `continuity/state.md`, or `story validate` fails with `story must be <new-id>`. For a folder-name id, a new title that gains any ASCII letter or digit (`Война и мир — том 2`) takes over the id (`2`), so prefer titles without them or reindex afterwards. `init` refuses an existing directory unless you pass `--force`; with `--force` it only creates missing starter files and never overwrites an existing `story.md`, registry, timeline, or `continuity/state.md`.
+
+`init` also writes a `.gitignore` listing `dist/` (build output), `.story.lock`, leftover `.*.story-*.tmp` and `.story-*.tmp` files, and OS and editor swap files, but only when the project has none. It never edits an existing `.gitignore`; if it prints `note: .gitignore was kept and does not ignore dist/`, tell the user and offer to add a `dist/` line (or remove a `!dist/...` negation).
 
 If `story` is not installed, use `bun run story --` from the Story Skills repository checkout or the bundled fallback `node ../story-maintenance/scripts/story.js` with the same arguments, resolving the path relative to this skill folder:
 
@@ -54,6 +58,7 @@ If neither command is available, create the files manually using the steps below
 
 ```
 {story-title-kebab}/
+├── .gitignore
 ├── story.md
 ├── style-sheet.md
 ├── characters/
@@ -84,6 +89,8 @@ If neither command is available, create the files manually using the steps below
 └── chapters/
     └── _index.md
 ```
+
+Write `.gitignore` only if the folder has none, with `dist/`, `.story.lock`, `.*.story-*.tmp`, `.story-*.tmp`, `.DS_Store`, `Thumbs.db`, `*.swp`, `*.swo`, and `*~`, one per line.
 
 3. Populate `story.md` with the story bible:
 

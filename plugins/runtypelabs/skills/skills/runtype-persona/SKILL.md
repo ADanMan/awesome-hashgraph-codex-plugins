@@ -56,7 +56,7 @@ more embed prose to this skill.
   CDNs are blocked there and fail silently). Deployed `static` apps allow scripts and styles
   from any https origin by default (authors can re-tighten via the manifest `csp` field), so
   third-party CDNs load — but the first-party CDN is still the right choice for Persona. On
-  a Runtype-deployed page, replace `latest` with a pinned version (e.g. `/persona/4.6.0/`)
+  a Runtype-deployed page, replace `latest` with a pinned version (`/persona/<version>/`, the current npm release)
   so a new release can't shift the widget code under your immutable app bundle.
 - Installer script: `https://cdn.runtype.com/persona/latest/install.global.js`.
 - Self-contained browser bundle: `https://cdn.runtype.com/persona/latest/index.global.js` (exposes `window.AgentWidget`).
@@ -76,8 +76,11 @@ Common wrong answers: `@runtype/persona`, `Persona.mount()`, `window.Persona`,
 
 ## Build Pattern
 
-1. Create or identify the product, agent/flow capability, and `chat` surface.
-2. Create a scoped client token with `create_client_token`.
+1. Create or identify the agent or flow. A product and `chat` surface are optional:
+   a token that names the agent in `agentIds` works without them.
+2. Create a scoped client token with `create_client_token` (or
+   `Runtype.clientTokens.ensure` in code). Without a surface, pass `agentId` to the
+   widget (`data-agent-id` or `config.agentId`).
 3. Generate embed code with `generate_persona_embed_code`.
 4. For consumer-facing widgets, hide tool calls and reasoning by default.
 5. For internal/debug widgets, expose useful traces intentionally.

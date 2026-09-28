@@ -44,7 +44,10 @@ Use it when you need a local Codex CLI multi-account workflow with visible accou
 Run `codex-multi-auth account auto-prime <index> on` to opt an account into
 periodic first-use checks by the running CLI/app router (every 15 minutes).
 It completes a tiny response only for an unused personal subscription and
-consumes subscription quota. The default is off; use `off` to disable it.
+consumes subscription quota. Checks follow the saved workspace selection and
+track each saved account separately, including members of a shared organization.
+Status reads quota for the selected workspace; routing reads quota for the request’s exact workspace.
+Select Personal for a Personal subscription. The default is off; use `off` to disable it.
 Manual `check` still needs `--prime`. See the [command reference](docs/reference/commands.md).
 
 ## Why Developers Use It

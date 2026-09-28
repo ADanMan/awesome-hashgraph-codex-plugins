@@ -1633,6 +1633,21 @@
       "icon": "./plugins/Maksim-Burtsev/simple-man/assets/icon.png"
     },
     {
+      "name": "since-cutoff",
+      "displayName": "since-cutoff",
+      "source": {
+        "source": "local",
+        "path": "./plugins/MohammadHijjawi97/since-cutoff"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Finds the pinned Python dependency APIs that changed after the model's training cutoff, tests which ones the model actually gets wrong, and writes one-line AGENTS.md notes that are kept only if their example type-checks.",
+      "icon": "./plugins/MohammadHijjawi97/since-cutoff/assets/icon.svg"
+    },
+    {
       "name": "skill-sync-publisher",
       "displayName": "skill-sync-publisher",
       "source": {
@@ -3191,6 +3206,21 @@
       },
       "category": "Tools & Integrations",
       "description": "Gamified local SEO audits that turn website issues into 16-bit dungeon battles for Codex, Claude, and Gemini CLI workflows."
+    },
+    {
+      "name": "sendsets",
+      "displayName": "Sendsets",
+      "source": {
+        "source": "local",
+        "path": "./plugins/AddisonHoff/sendsets"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Send cold email from Codex: connect and warm up mailboxes, build and launch outbound sequences, and answer replies through the Sendsets MCP server.",
+      "icon": "./plugins/AddisonHoff/sendsets/assets/logo.png"
     },
     {
       "name": "shots",

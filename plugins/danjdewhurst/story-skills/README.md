@@ -81,9 +81,9 @@ error: chapters/chapter-04.md lists edran-vale, who died in chapter-02; move pos
 error: continuity/promises/the-broken-compass.md pays off in chapter-02 before it is planted in chapter-03
 error: continuity/questions/who-burned-the-mill.md resolves in chapter-02 before it is introduced in chapter-03
 error: continuity/state.md knowledge-state[0] references missing chapter chapter-05
-warning: chapters/chapter-03.md POV character nessa-thorn is not listed in characters
-warning: continuity/promises/the-sealed-letter.md was planted in chapter-01, 3 chapters ago, and has no payoff yet
-warning: continuity/state.md object-state[0] status active conflicts with worldbuilding/artifacts/vales-compass.md status destroyed
+warning: chapters/chapter-03.md POV character nessa-thorn is not listed in characters [pov-not-in-cast]
+warning: continuity/promises/the-sealed-letter.md was planted in chapter-01, 3 chapters ago, and has no payoff yet [promise-unpaid]
+warning: continuity/state.md object-state[0] status active conflicts with worldbuilding/artifacts/vales-compass.md status destroyed [state-status-conflict]
 ```
 
 Every finding is exact, file-addressed, and reproducible, and CI asserts this output on every commit. Intentional flashbacks and posthumous appearances stay legal through the chapter `mentions` field, and findings listed in `continuity/exemptions.md` are reported as dismissed. `story doctor` and `story next` fold the same checks into prioritized repair actions.
@@ -104,6 +104,7 @@ Every finding is exact, file-addressed, and reproducible, and CI asserts this ou
 | **discovery-drafting** | Pantsing mode: draft from a story kernel, keep post-hoc chapter notes, and reconcile the bible after each discovery-drafted chapter | *"I want to discovery-write"* |
 | **scene-craft** | Plans and checks the scene unit: Scene/Sequel structure, try/fail cycles, scene cards, dialogue subtext and voice differentiation, deep POV, exposition, flashbacks, and openings | *"Does this chapter breathe?"* |
 | **voice-style** | Keeps a copyeditor's style sheet (dialect, house spellings, dialogue punctuation, character voices, watch words) and acts on `story prose` lint findings | *"Set up a style sheet for this book"* |
+| **verse-craft** | Writes, scans, and fixes verse: limericks, sonnets, haiku, ballads, song lyrics, rhyming picture-book text, and a character's song or prophecy, with every line's stresses and the rhyme scheme shown so the author can check them | *"Does this limerick scan?"* |
 | **line-editing** | Owns the prose pass without flattening the author's voice: line edits with a reason for each change, distinct character voices checked by `story voices`, a copyedit against the style sheet, and read-aloud and proof passes | *"Line edit chapter 3. Everyone sounds the same."* |
 | **revision-continuity** | Revises drafts, audits continuity, and keeps character state, timeline, and arc changes consistent | *"Continuity-check chapter 3"* |
 | **feedback-triage** | Collects alpha/beta reader feedback per round, synthesizes convergent and divergent notes, and hands a revision plan to revision-continuity | *"Triage the beta feedback"* |
@@ -144,6 +145,7 @@ The CLI is for maintenance only. Agents write story content directly to markdown
 | `story import draft.md --title "The Lost Coast"` | Split an existing manuscript into a new story project and suggest entity candidates |
 | `story add character "Sera Voss"` | Create entity files for characters, locations, systems, factions, artifacts, arcs, chapters, scenes, questions, promises, clues, terms, research notes, and matter pages |
 | `story add matter "Dedication"` | Add a front (default) or `--placement back` matter page such as a dedication, epigraph, or acknowledgments |
+| `story add character "Пётр" --id petr` | Give the id by hand for a name the CLI cannot slug, so the name keeps its own script |
 | `story names "Seren" "Kestrel Row"` | Check candidate names against every name, alias, and glossary term before using them: clashes fail, look-alikes warn |
 | `story rename character sera-voss "Sera Vale"` | Rename an entity and update kebab-case references |
 | `story move chapter chapter-03 --number 4` | Renumber a chapter, or move a scene with `story move scene <id> --chapter <id>`, renaming the files and rewriting every reference to the old id |
@@ -170,6 +172,7 @@ The CLI is for maintenance only. Agents write story content directly to markdown
 | Command | Purpose |
 |---------|---------|
 | `story knowledge sera-voss --at chapter-03` | Show what a character knew at a chapter, from timeline-scoped knowledge state |
+| `story context chapter-03 --budget 6000` | Pack the drafting context for a chapter or scene (style rules, POV knowledge, cast cards, open threads, recent scenes) into a token budget, with nothing from later chapters |
 | `story timeline [path]` | Show scenes in story-time order from their `date`/`time` (marking scenes told out of order), POV balance by words, and each character's presence and longest absence |
 | `story prose [path]` | Lint chapter prose: filter words, -ly adverbs, said-bookisms, echoes, sentence rhythm, repeated phrases, similar names, and `style-sheet.md` spellings and watch words |
 | `story voices [path]` | Fingerprint each character's attributed dialogue (sentence length, contractions, questions, signature words) and flag `voice-avoid` words and characters who sound alike. Only named speech tags and single-name action beats count; pronoun tags do not |
@@ -177,7 +180,7 @@ The CLI is for maintenance only. Agents write story content directly to markdown
 | `story clues [path]` | Draw the fair-play grid of clue plants and reveals by chapter; flag late plants, unplanted reveals, and red herrings never debunked |
 | `story diagram relationships --path .` | Print Mermaid source for the family tree and relationships, the location route map, the story-time timeline, the clue flow, or arcs by chapter |
 | `story progress [path] --log` | Report words against `target-words`, the `deadline`, and chapter targets; `--log` records the day's count in `progress.md` for pace and a projected finish |
-| `story compare [path] --ref draft-1` | Compare chapters with an earlier draft (a git ref, or `--against` a copied project folder): word changes, added and removed chapters, and unchanged paragraphs |
+| `story compare [path] --ref draft-1` | Compare chapters with an earlier draft (a git ref, or `--against` a copied project folder): word changes, added and removed chapters, and unchanged paragraphs; `--anchor ch03-p12` finds where a review-copy paragraph is now |
 
 **Publish**
 
@@ -190,6 +193,7 @@ The CLI is for maintenance only. Agents write story content directly to markdown
 | `story build [path] --format print --trim 6x9` | Build a print-ready paged-media HTML interior (author and chapter-title running heads, foot page numbers, raised chapter initials) to render to PDF with Paged.js, WeasyPrint, or Prince |
 | `story build [path] --format narration` | Build an audiobook narration script with a pronunciation guide and runtime estimates |
 | `story build [path] --format metadata` | Build a retailer metadata sheet from `story.md` with a readiness checklist |
+| `story build [path] --format fountain` | Build a Fountain screenplay skeleton, one scene heading per scene record, to draft an adaptation into |
 
 Behavior notes:
 
@@ -274,7 +278,7 @@ Some files appear only once you need them: `matter/` for front and back matter, 
 Every story element is a markdown file with YAML frontmatter, and the skills cross-reference those files to keep the project consistent:
 
 - **`story.md`** is the top-level bible that every skill reads. Its **`schema-version: 2`** field lets the CLI detect incompatible project formats.
-- Every entity file is named by a **kebab-case identifier**, such as `sera-voss` or `chapter-01`.
+- Every entity file is named by a **kebab-case identifier**, such as `sera-voss` or `chapter-01`. It comes from the entity's name, or from `story add --id` when the name has no ASCII letters or digits; names themselves may be written in any script.
 - **`_index.md`** files are the registries for each domain.
 - Relationships and references are kept **bidirectional**.
 - Scene records and continuity state keep character knowledge, object ownership, and setups and payoffs in files, so they carry over between sessions.
@@ -291,6 +295,7 @@ Examples in this repository:
 - [`examples/the-last-ember/`](examples/the-last-ember/): a fantasy with three characters, two locations, a magic system, a plot arc with foreshadowing, and a drafted first chapter.
 - [`examples/the-fall-of-the-citadel/`](examples/the-fall-of-the-citadel/): a prequel to The Last Ember, linked with `series`, `book-number`, and `precedes`, that shares characters and places with the first book. Run `story series examples/the-last-ember` to see the chronology.
 - [`examples/harbor-of-second-light/`](examples/harbor-of-second-light/): a near-future coastal mystery with memory technology, a posthumous witness arc, populated continuity state, and a drafted first chapter.
+- [`examples/the-gull-rock-light/`](examples/the-gull-rock-light/): a short branching story whose chapters carry `choices`; `story build --format twee` turns it into a Twine story and `--format ink` into an ink story.
 - [`examples/the-unraveled-thread/`](examples/the-unraveled-thread/): a deliberately broken project that demonstrates the main kinds of finding the continuity engine reports.
 
 ## More install options
@@ -424,7 +429,7 @@ Outside coding agents:
 
 ## Development and releasing
 
-The [Development guide](docs/development.md) covers the repository layout, CLI architecture, tests, and release process in full. Development uses Bun:
+To contribute, start with [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md). User-visible changes are listed in the [changelog](CHANGELOG.md). The [Development guide](docs/development.md) covers the repository layout, CLI architecture, tests, and release process in full. Development uses Bun:
 
 ```shell
 bun install
@@ -452,7 +457,7 @@ node evals/run-skill.js  # full model run (needs Claude Code credentials)
 
 Every published change needs a new version in `package.json`, `.codex-plugin/plugin.json` (Codex's version source), `.claude-plugin/plugin.json` (Claude Code's), and `src/version.js` (printed by `story --version`), so installed users receive updates. Marketplace entries stay unversioned to avoid duplicate version state.
 
-Don't bump these by hand. The release script bumps all four, plus the template `STORY_REF` pins and the version examples in the docs, rebuilds the fallback, runs the CI checks, commits `chore: release X.Y.Z`, tags `vX.Y.Z`, pushes, and creates a GitHub release with generated notes. The tag push runs the Publish workflow, which publishes the package to npm with provenance through trusted publishing. The script requires a clean `main` that matches `origin/main`, a logged-in `gh`, and a version that isn't already on npm:
+Don't bump these by hand. The release script bumps all four, plus the template `STORY_REF` pins and the version examples in the docs, moves the `Unreleased` entries in `CHANGELOG.md` under the new version (and refuses to run while there are none), rebuilds the fallback, runs the CI checks, commits `chore: release X.Y.Z`, tags `vX.Y.Z`, pushes, and creates a GitHub release with generated notes. The tag push runs the Publish workflow, which publishes the package to npm with provenance through trusted publishing. The script requires a clean `main` that matches `origin/main`, a logged-in `gh`, and a version that isn't already on npm:
 
 ```shell
 bun run release patch            # or minor, major, or an explicit version like 1.2.0

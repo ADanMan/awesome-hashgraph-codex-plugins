@@ -27,6 +27,27 @@ story-init convention — this keeps `story continuity` from flagging
 posthumous or temporally-impossible appearances (continuity checks use
 `mentions`, not `flashback-to`).
 
+Give a flashback scene its real, earlier `date`. `story continuity` then
+warns `<scene> timestamp runs backward`. That finding is deliberate, so do
+not "fix" the date: record it in `continuity/exemptions.md` (create the file
+if it does not exist) with the finding's code (`clock-backward`, in brackets
+at the end of the warning) and the scene's file, and rerun
+`story continuity .`, which now reports it as `dismissed`:
+
+```yaml
+---
+type: exemption-log
+exemptions:
+  - code: clock-backward
+    file: scenes/chapter-04-scene-02.md
+    reason: "Deliberate flashback to the 1921 wreck."
+---
+```
+
+Always give the `file` (or the `chapter`) with the `code`, so a misdated
+scene elsewhere still shows up; `story validate` rejects an entry with only
+a `code`.
+
 ## The flashback-as-tension-cheat warning
 
 A flashback placed at a cliffhanger is a cheat: it pauses the present tension

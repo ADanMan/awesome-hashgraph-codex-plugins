@@ -130,7 +130,7 @@ Useful in a real workflow? [Star the repository](https://github.com/happy520ai/u
 <p align="center">
   <img
     src="docs/assets/readme-architecture.png"
-    alt="Architecture: OpenAI/Anthropic SDKs, MCP clients, A2A, CLI, and HTTP enter one gateway that adds prompt enhancement, virtual keys, exact + semantic cache, reverse MCP governance, observability, and audit — providers stay behind a three-gate whitelist with the fake provider as the credential-free default"
+    alt="Architecture: OpenAI/Anthropic SDKs, MCP clients, A2A, CLI, and HTTP enter one gateway that adds prompt enhancement, virtual keys, exact cache with an optional semantic layer, reverse MCP governance, observability, and audit — providers stay behind a three-gate whitelist with the fake provider as the credential-free default"
     width="100%"
   />
   <br />
@@ -163,7 +163,7 @@ fake-provider-first, so you can try every feature with zero credentials:
 <p align="center">
   <img
     src="docs/assets/readme-capabilities.png"
-    alt="Capability cards: OpenAI, Anthropic, and Gemini APIs; virtual keys and budgets; exact and semantic cache; reverse MCP governance; observability; local-first RAG; provider governance; and a 23-attack security regression"
+    alt="Capability cards: OpenAI, Anthropic, and Gemini APIs; virtual keys and budgets; exact cache with an optional semantic layer; reverse MCP governance; observability; local-first RAG; provider governance; and a 23-attack security regression"
     width="100%"
   />
 </p>
@@ -175,7 +175,7 @@ fake-provider-first, so you can try every feature with zero credentials:
 | Response cache — exact + lexical-approximate | Tenant-scoped hot-path caching with byte-identical JSON/SSE replay, plus an opt-in similarity layer for near-duplicate requests. The default layer is deterministic lexical approximation, not a semantic model; attach a real embedding endpoint via the HTTP embedding hook for semantic-grade matching. | [Response cache](docs/response-cache-hot-path.md) |
 | Operations overview API (terminal-first) | `GET /api/overview` returns a compact JSON snapshot (provider mode, health, readiness, request stats, circuit state) behind `dashboard:read` — a lightweight companion to `/metrics` for CLI and dashboard tooling. The gateway serves no browser page; the public-clone gate keeps it terminal-first. | [Observability](docs/observability-export.md) |
 | Guardrails — deterministic & local | Input/output scans: pasted secrets block, PII redacts, injection phrasings warn, banned terms and size limits enforce — no cloud tier, no extra credentials, <0.2 ms measured overhead, runtime-configurable per rule. | [Guardrails](docs/guardrails.md) |
-| Reverse MCP governance | Aggregate upstream MCP servers (Streamable HTTP and stdio) behind one authenticated, audited, allow-listed surface — plus **REST→MCP**: any OpenAPI 3 spec becomes governed MCP tools. | [Reverse MCP governance](docs/reverse-mcp-governance.md) |
+| Reverse MCP governance | Aggregate upstream MCP servers (Streamable HTTP and stdio) behind one authenticated, audited, allow-listed surface — plus **REST→MCP**: each OpenAPI 3 operation whose input semantics are unambiguous becomes a governed MCP tool; a construct that cannot be resolved is refused rather than guessed. | [Reverse MCP governance](docs/reverse-mcp-governance.md) |
 | Agent governance control plane | Explicit opt-in for server-bound `/agent-exec`, reverse-MCP, controlled `/workforce/execute`, and per-action `/forge/orchestrate`, with deterministic policies, signed state, reviewable top-level approvals, dual fences, rollback detection and cascade revocation. Per-action Forge approvals are not yet implemented and fail closed before any effect; Workforce `run-local`/A2A and standalone Forge remain explicit boundaries. | [Agent governance](docs/agent-governance.md) |
 | Observability | Chat-specific Prometheus metrics on `/metrics` — tokens per model, cache hit rates, TTFT histograms, virtual-key rejections, guardrail findings — plus an opt-in Langfuse export and a per-key spend report API/CLI. | [Observability](docs/observability-export.md) |
 | Vector retrieval | A credential-free deterministic embedding provider and the SQLite vector store activate `mode: "vector"` RAG with strict tenant isolation. | [Providers & knowledge](docs/providers.md) |
@@ -459,6 +459,8 @@ contains the input text.
 
 - [Documentation](docs/README.md) for setup, the CLI, prompt enhancement, and providers.
 - [Codex MCP quickstart](https://happy520ai.github.io/unified-ai-system/codex-mcp-docker-quickstart.html) for the fastest agent-tool integration; the [source guide](docs/codex-mcp-quickstart.md) is kept in the repository.
+- [Self-hosted AI gateways, in their own words](https://happy520ai.github.io/unified-ai-system/self-hosted-ai-gateways-compared.html) - LiteLLM, Portkey Gateway, Agent Router and this project, each quoted from its own README with the date it was read, plus three questions to ask before handing over agent traffic.
+- [Five measurements of the public MCP ecosystem](https://happy520ai.github.io/unified-ai-system/mcp-ecosystem-measurements.html) - 40 servers advertised in the official registry, asked anonymously: [0 of the 16 that answered paginate `tools/list`](https://github.com/happy520ai/unified-ai-system/blob/master/docs/mcp-tools-list-pagination-survey.md), [2 of the 18 that answered agreed to a protocol version that does not exist](https://github.com/happy520ai/unified-ai-system/blob/master/docs/mcp-protocol-revision-tolerance.md), [both servers that issue a session id require it back](https://github.com/happy520ai/unified-ai-system/blob/master/docs/mcp-session-enforcement.md), and [1 of 16 implements `server/discover` while 12 have never heard of it](https://happy520ai.github.io/unified-ai-system/mcp-ecosystem-measurements.html), and [9 of 16 send server-written `instructions` prose to an anonymous client, 72 to 1,423 characters](https://happy520ai.github.io/unified-ai-system/mcp-ecosystem-measurements.html). 22 of the 40 would not talk to an anonymous client at all, and every page says so about its own denominator. Each page ships its script, so any number here is yours to re-run in about two minutes, and the whole set is published as generated data: [the 40-endpoint run of 2026-09-27](https://happy520ai.github.io/unified-ai-system/data/mcp-ecosystem-measurements.json), [its ten-question re-run of 2026-09-28](https://happy520ai.github.io/unified-ai-system/data/mcp-ecosystem-measurements.2026-09-28.json), and [the wide run](https://happy520ai.github.io/unified-ai-system/data/mcp-ecosystem-measurements.wide.json). A sixth question, measured later the same day in its own window, asks [whether anyone enforces the `MCP-Protocol-Version` header](https://happy520ai.github.io/unified-ai-system/mcp-protocol-version-header.md) - none of the 16 that answered did, which is also why closing our own gap on it was a conformance fix rather than an interoperability rescue.
 - [Contributing guide](CONTRIBUTING.md) for focused changes and safe verification.
 - [Usage Report template](.github/ISSUE_TEMPLATE/usage-verification-report.yml) for reproducible feedback.
 - [Cite this project](CITATION.cff), [Roadmap](ROADMAP.md), and [Support](SUPPORT.md).
@@ -471,6 +473,9 @@ We separate what is verified from what is not claimed:
 - Hosted public API: **No**
 - Real provider execution by default: **No**, must be explicitly enabled
 - Browser chat UI in this repo: **No** (CLI/API/MCP are first-class)
+- Cold stdio handshake: **~8 s** on the published source entry point, measured rather than estimated —
+  [where an MCP connect budget actually goes](https://happy520ai.github.io/unified-ai-system/mcp-startup-timeouts.html)
+  says which part is process boot, which part is tool work, and what that page does not establish.
 - Production ready / AGI / L5: **Not claimed**
 
 Real provider calls are disabled by default. Configure safely via `.env.example` and `docs/providers.md`.

@@ -28,7 +28,7 @@ A story project must already exist (created via the story-init skill). Verify by
    - Character arc (starting state, turning points, ending state)
    - Key life events for the timeline
 5. Write the character file using the template in `references/character-template.md`
-6. Save to `characters/{name-kebab}.md`, or use `story add character "{Name}" --role "{role}"` when the CLI is available
+6. Save to `characters/{name-kebab}.md`, or use `story add character "{Name}" --role "{role}"` when the CLI is available. When the name has no ASCII letters or digits (`Пётр`, `李明`), choose the ASCII id yourself and pass it: `story add character "Пётр" --id petr --role supporting` keeps `name: Пётр` in the file
 7. Update `characters/_index.md` registry table
 8. If relationships reference existing characters, update those character files too
 9. When CLI access is available, run the maintenance pass in the story root:
@@ -43,10 +43,32 @@ story validate .
 
 1. Read the existing character file
 2. Read `characters/_index.md` for context on other characters
-3. Make the requested changes
+3. Make the requested changes. If the change happens partway through the story (a scar, a new title, a turn to the other side), add a progression instead of editing the opening value (see Changes Over the Story)
 4. If relationships changed, update the other character's file (bidirectional)
 5. Update `characters/_index.md` if role or status changed
 6. When CLI access is available, run `story reindex .`, `story links .`, and `story validate .`
+
+## Changes Over the Story
+
+A character file describes the character as the story opens. Record a change that happens in a later chapter as a progression, so an agent drafting an earlier chapter does not write it in too soon:
+
+```yaml
+progressions:
+  - from: chapter-10
+    field: scar
+    value: "Jaw to collarbone, taken holding a door"
+  - from: chapter-14
+    field: role
+    value: antagonist
+```
+
+- `from` is the first chapter where the new value holds. It may be a planned `chapter-NN` with no file yet
+- `field` is kebab-case. It can be an existing single-value field (`status`, `role`, `arc`) or a new one (`scar`, `title`). List fields (`aliases`, `relationships`, `locations`, `tags`, voice lists) cannot change this way; record a shifted relationship as a progression on its own field, such as `field: standing-with-kael` with `value: estranged` under `progressions`, never as a top-level field (that would show from chapter 1)
+- `value` is one value. `role` and `status` values must be ones the character file allows
+- Keep entries in story order. Do not use a progression alone for a death: set `died-in` (see below). A `status` progression is still checked against the story: `story continuity` warns when a progression to `deceased` with no `died-in` is followed by the character in a cast or learning something, when a status progression brings them back between `died-in` and `revived-in`, and when a progression to `deceased` still holds at `revived-in`
+- Before drafting or revising a chapter, run `story knowledge {id} --at chapter-NN` to see what the character knows and which changes already apply there, and write to that state rather than the opening frontmatter alone
+
+After adding or editing progressions, run `story validate .`, `story links .`, and `story continuity .`.
 
 ## Renaming or Killing Off a Character
 
@@ -57,6 +79,14 @@ To kill a character off:
 1. Set `status: deceased` and `died-in: chapter-NN` in the character file
 2. In every later chapter and scene, move the id from `characters` (and `pov`) to `mentions` where they appear only in memory, letters, or flashback
 3. Run `story continuity .`: it reports any later chapter or scene that still lists them in its cast
+
+Variants:
+
+- **Planned death:** set `died-in` to an outline chapter and keep `status: alive`; set `status: deceased` when that chapter is drafted
+- **Dead narrator (ghost, posthumous POV):** keep them as `pov` and also list them in `mentions`; that is not a posthumous appearance
+- **Resurrection:** add `revived-in: chapter-NN`; casts from that chapter on are allowed again, and once it is drafted set `status: alive`. If a progression made them `deceased`, add a `status` progression from the revival chapter too
+- **Non-linear books:** give chapters a `date` so deaths compare by story time, and give a dual-timeline book's chapters a `strand` so each timeline keeps its own clock
+- Drop the character's `character-state` entry in `continuity/state.md` once the death is drafted and at or before `current-chapter`
 
 After either change, run `story reindex .`, `story links .`, and `story validate .`.
 

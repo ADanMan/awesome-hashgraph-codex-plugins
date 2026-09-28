@@ -23,7 +23,7 @@ The in-repo `line-editing` skill owns the prose-quality pass (line edit, voice d
 The external `better-writing` skill is an optional complement for general prose quality and anti-generic writing checks. Before drafting or revising chapter prose, check whether it is available in the active agent environment. Detect it by looking for its skill directory in the configured skills paths:
 
 ```shell
-ls -d ~/.claude/skills/better-writing .claude/skills/better-writing skills/better-writing 2>/dev/null
+ls -d ~/.claude/skills/better-writing .claude/skills/better-writing ~/.agents/skills/better-writing .agents/skills/better-writing skills/better-writing 2>/dev/null
 ```
 
 - If a `better-writing` directory exists (containing `SKILL.md`), use it for prose quality, voice calibration, anti-generic writing checks, and the final pre-flight pass before saving the chapter.
@@ -33,7 +33,15 @@ ls -d ~/.claude/skills/better-writing .claude/skills/better-writing skills/bette
 
 ### 1. Gather Context
 
-Read these files to understand the current story state:
+If the chapter you are drafting already has a file with its `pov` and `characters` set (for example a planned chapter that `story next` names), start with its packed context:
+
+```shell
+story context chapter-{NN} --path .
+```
+
+It prints, within a token budget (`--budget`, default 6000), the chapter's outline and cast, the `story.md` essentials and `style-sheet.md` rules, the POV character's knowledge and state at that point, cards for the characters on the page and the chapter's locations (with their `progressions` applied at this chapter), open promises, clues, and questions, and summaries of the previous scenes. It includes nothing from later chapters, so it is safe to draft from. Add `--json` if you would rather read the items as data. Read the files it lists under "Left out to fit the budget" when you need them. For a new chapter, run it after step 2 instead.
+
+Read what the packed context leaves out, as needed:
 
 - `story.md` - genre, themes, POV, tense
 - `style-sheet.md`, when present - voice, house spellings, dialogue punctuation, character voices, and watch words. If it is missing, draft normally and suggest the `voice-style` skill once a chapter exists
@@ -56,6 +64,8 @@ Ask the user:
 - Which location(s)?
 
 If plot arcs exist, suggest the next logical beats to advance.
+
+Once the scope is agreed, give the chapter its POV and cast so the packed context can include them: create a new chapter with `story add chapter "Title" --pov <character-id> --character <character-id> --location <location-id>`, or set `pov`, `characters`, and `locations` in an existing chapter's frontmatter. Then run `story context chapter-{NN} --path .` (or pass a scene id, `chapter-{NN}-scene-{NN}`, to draft one scene) and build the outline and prose from it.
 
 ### 3. Build the Outline
 
@@ -81,12 +91,13 @@ With the approved outline, write the full prose:
 - Consult `references/writing-guidelines.md` for quick prose craft guidance. For the deep reference — the Scene/Sequel unit, dialogue subtext and voice-differentiation, deep POV and psychic distance — use the `scene-craft` skill.
 - Give each speaker their recorded voice, using `voice-words` and avoiding `voice-avoid` from their character file
 - When available, apply the `better-writing` skill before finalizing prose; the `line-editing` skill handles the fuller prose pass afterwards
+- To check a drafted scene before saving it, pipe it to `story prose -` (style sheet, filter words, echoes) and `story voices -` (`voice-avoid` words) from the project folder
 - Use the chapter template from `references/chapter-template.md`
 - Include the approved outline in the file above `## Chapter Text` (for reference). CLI word counts start at that heading, so an outline kept above it never inflates `word-count`: run `story wordcount . --write` after writing to record counts.
 
 Save to `chapters/chapter-{NN}.md` with appropriate frontmatter.
 
-Create or update a matching scene file in `scenes/chapter-{NN}-scene-{NN}.md` for each scene. Scene frontmatter should include `title`, `chapter`, `scene`, `pov`, `location`, `characters`, `mentions`, `arcs-advanced`, `status`, and `state-changes` so continuity survives beyond prose. Set `outcome` on each goal-driven scene record to what actually happened on the page (`yes`, `no`, `yes-but`, `no-and`), and set the chapter's `hook` to how it actually ends (`cliffhanger`, `question`, `revelation`, `reversal`, `decision`, `emotional`, `resolution`).
+Create or update a matching scene file in `scenes/chapter-{NN}-scene-{NN}.md` for each scene. Scene frontmatter should include `title`, `chapter`, `scene`, `pov`, `location`, `characters`, `mentions`, `arcs-advanced`, `status`, `date`, `time`, and `state-changes` so continuity survives beyond prose. Set `date` (`YYYY-MM-DD`) and `time` (`"HH:MM"` or `dawn`, `morning`, `midday`, `afternoon`, `evening`, `night`) on every scene as its moment settles, and `travel-hours` (a number) when the POV character had to travel since the previous scene: undated scenes silently switch off the clock and route checks in `story continuity`, and `story timeline` lists them as undated. Set `outcome` on each goal-driven scene record to what actually happened on the page (`yes`, `no`, `yes-but`, `no-and`), and set the chapter's `hook` to how it actually ends (`cliffhanger`, `question`, `revelation`, `reversal`, `decision`, `emotional`, `resolution`).
 
 Write chapter prose directly into the chapter markdown file. Do not stage prose in project-local build scripts, generator scripts, or bulk writer scripts (for example `build-*.js`) to emit chapters. If a temporary helper is truly unavoidable for mechanical file operations, keep it outside the story project and remove it before finishing.
 

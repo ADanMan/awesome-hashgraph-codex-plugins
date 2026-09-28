@@ -33,6 +33,8 @@ it.
 - NOT for setting house style or the voice description (use `voice-style`; this skill applies it)
 - NOT for scene-level craft such as deep POV, subtext, or exposition strategy (use `scene-craft`)
 - NOT for acting on external reader notes (use `feedback-triage`)
+- NOT for writing or scanning verse (use `verse-craft`); this skill only
+  flags rhymes that slipped into prose by accident
 
 ## Workflow
 
@@ -67,6 +69,10 @@ story passes . --start line
    20 so the author can review them.
 4. Leave passages that are unusual but deliberate. When unsure whether a
    quirk is voice or error, ask.
+5. To check a rewritten passage before putting it in the chapter, pipe it
+   in: `story prose - < rewrite.md` lints it against the style sheet, and
+   `story voices - < rewrite.md` checks its dialogue against the
+   characters' `voice-avoid` lists.
 
 ### 3. Differentiate character voices
 

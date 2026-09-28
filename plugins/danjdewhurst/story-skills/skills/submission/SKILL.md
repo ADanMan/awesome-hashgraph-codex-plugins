@@ -78,9 +78,27 @@ Then check what the CLI cannot:
    state the number and the range, and ask the user to confirm current
    norms for their market. Never pad or cut to hit a number without the
    user's direction.
-5. No `[TODO` markers remain in chapter prose.
+5. No `[TODO` markers remain in chapter prose. `story validate` warns about
+   each chapter that still has one.
 6. Open questions and planted promises are resolved, or deliberately left
-   for a sequel (check `story.md` `precedes`).
+   for a sequel (check `story.md` `precedes`). Once `story.md` is
+   `status: complete`, every open question and planned or planted promise
+   or clue is a `story continuity` error, which fails the story-checks CI.
+   No status means "pays off in the next book", so for each thread the
+   user confirms is left for a sequel, add an entry to
+   `continuity/exemptions.md` rather than changing its status:
+
+   ```yaml
+   ---
+   type: exemption-log
+   exemptions:
+     - code: complete-with-open-promise
+       pattern: "continuity/promises/the-sealed-letter.md is still planted"
+       reason: "Pays off in book two."
+   ---
+   ```
+
+   Rerun `story continuity .` and confirm the finding shows as `dismissed`.
 
 Give a verdict: `ready`, `ready-with-caveats` (list them), or `not-ready`
 (list the blockers and hand them to `revision-continuity`).
@@ -128,7 +146,10 @@ provides.
    1,500. Overwrite the generated files with the rewritten versions and add
    the frontmatter from Conventions below.
 4. If the output is thin, the arc files are thin: fill the missing arc
-   sections with the `plot-structure` skill, rerun, then rewrite.
+   sections with the `plot-structure` skill, rerun, then rewrite. `--out`
+   never replaces an existing file in `submission/`, so to rerun, write to
+   `dist/` and merge, or delete the generated file first after checking with
+   the user that it holds no rewriting they want to keep.
 
 ### 6. Blurb and retailer description
 
@@ -147,7 +168,11 @@ story build . --format shunn
 ```
 
 Confirm `story.md` has `author` (or `authors`) and `contact` first; the
-title page uses them, joining co-authors with "and". Shunn builds leave out `matter/` pages, as submissions expect. For
+title page uses them, joining co-authors with "and". Shunn builds leave out `matter/` pages, as submissions expect. With
+`form: short-story` or `form: flash` in `story.md` they use Shunn's
+short-story layout: the text runs on from the title block, chapters become
+sections separated by a centred `#`, and there are no chapter headings or
+page breaks. Any other form starts each chapter on a new page. For
 self-publishing, hand off to the `publishing` skill, which covers EPUB and
 print builds (`story build . --format epub`, `--format print --trim 6x9`),
 retailer metadata, and launch.

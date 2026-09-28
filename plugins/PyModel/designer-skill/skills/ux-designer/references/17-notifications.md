@@ -28,6 +28,29 @@ Info       █░░░░░░░░░░░  Background context (changelog, 
 
 ---
 
+### Choosing a Type
+
+```
+What needs the user's attention?
+├── Immediate action required?
+│   ├── Blocking (must resolve before continuing)?
+│   │   └── → Modal dialog (confirmation, error recovery)
+│   └── Non-blocking but urgent?
+│       └── → Banner (top of page, persistent until dismissed)
+├── Feedback on a completed action?
+│   ├── Success or low-importance info?
+│   │   └── → Toast (auto-dismiss 4-8s)
+│   └── Warning or error?
+│       └── → Toast with action button (errors persist until dismissed; see Toasts below)
+├── Background event (new message, update from others)?
+│   ├── User is in the same context?
+│   │   └── → Badge + subtle inline indicator
+│   └── User is elsewhere in the app?
+│       └── → Badge on nav item + optional push notification
+└── System status (maintenance, connectivity)?
+    └── → Persistent banner (top or bottom of viewport)
+```
+
 ## Severity & Visual Hierarchy
 
 ### Standard Severity Levels
@@ -120,7 +143,7 @@ Info       █░░░░░░░░░░░  Background context (changelog, 
 **Duration guidelines:**
 - Short messages (no action): 4 seconds
 - Messages with action button: 6-8 seconds
-- Error messages: 8-10 seconds or until dismissed
+- Error messages: persist until dismissed
 - Never auto-dismiss critical errors
 
 **Placement:**
@@ -409,6 +432,8 @@ When user denied permission:
 ---
 
 ## Key Metrics
+
+Targets below are illustrative starting points, not sourced benchmarks; set real targets from your own baseline.
 
 | Metric | Target | Context |
 |--------|--------|---------|

@@ -102,7 +102,7 @@ For structural or reveal passes, also run `story pacing .` and `story clues .`; 
 
 If `story.md` links other books through `follows` or `precedes`, also run `story series .` so the revision does not break canon shared with sequels or prequels. See the `series-continuity` skill.
 
-`story continuity` deterministically checks death ordering (`died-in` vs later appearances, and characters `deceased` with no `died-in` listed in any cast), promise/question chapter ordering, unfired setups, POV/cast consistency, and `continuity/state.md` references. For intentional flashbacks, memories, or recordings of dead characters, list them under chapter or scene `mentions` instead of `characters`.
+`story continuity` deterministically checks death ordering (`died-in` vs later appearances, characters `deceased` with no `died-in` listed in any cast, and a character `status` progression to `deceased` followed by later appearances or learning, resolved in story order), status progressions that contradict `died-in` or `revived-in`, promise/question chapter ordering, unfired setups, POV/cast consistency, and `continuity/state.md` references. For intentional flashbacks, memories, or recordings of dead characters, list them under chapter or scene `mentions` instead of `characters`. A dead POV narrator keeps `pov` and is also listed in `mentions`; a resurrected character gets `revived-in: chapter-NN`; a death in an outline chapter is planned and may keep `status: alive`. Chapters dated on both sides compare deaths and `story knowledge` by story date, and a dual-timeline book's chapters take a `strand` so each timeline keeps its own clock. It also warns when `continuity/state.md` drifts from scene `state-changes` knowledge and artifact owners, from deaths, or from casts.
 
 If `story` is not installed, use `bun run story --` from the Story Skills repository checkout or the bundled fallback `node ../story-maintenance/scripts/story.js` with the same arguments, resolving the path relative to this skill folder.
 
@@ -110,7 +110,7 @@ If `story` is not installed, use `bun run story --` from the Story Skills reposi
 
 Take a snapshot before a revision pass that touches more than one chapter, and name it after the draft it preserves (`draft-1`, `pre-beta-edit`).
 
-- **Git projects:** check `git status`. Ask the user before committing anything; with approval, commit the current state and tag it: `git add -A && git commit -m "Draft 1 before developmental pass" && git tag draft-1`. Never push, rewrite history, or delete tags without explicit approval.
+- **Git projects:** check `git status`, and make sure `.gitignore` lists `dist/` (`story init` writes one that does, but older or hand-made projects may lack it) so build output such as EPUB and DOCX files stays out of every snapshot and `story compare --ref` baseline; add the line if it is missing. Ask the user before committing anything; with approval, commit the current state and tag it: `git add -A && git commit -m "Draft 1 before developmental pass" && git tag draft-1`. Never push, rewrite history, or delete tags without explicit approval.
 - **Projects without git:** offer to run `git init` first. If the user declines, copy the whole project folder beside it (`../the-tide-room-draft-1`), never into the project, where `story` commands would scan the copy.
 
 After the pass, compare with the snapshot and report the result:
@@ -120,7 +120,7 @@ story compare . --ref draft-1
 story compare . --against ../the-tide-room-draft-1
 ```
 
-`story compare` lists each chapter's word change, added and removed chapters, and the share of paragraphs left unchanged, so the user can see how deep the pass went. Chapters are matched by id, so after a renumber the same id holds different prose, and a chapter whose prose did not change can read as rewritten. In that case, compare the moved chapters by content (read the old and new text side by side) rather than trusting the per-chapter figures. It only reads git; it never commits or tags.
+`story compare` lists each chapter's word change, added and removed chapters, and the share of paragraphs left unchanged, so the user can see how deep the pass went. Chapters are matched by id, but a chapter renumbered by `story move` whose paragraphs still mostly match is paired with its old id and shown as `(moved from chapter-NN)`. A chapter that was renumbered and also heavily rewritten (under half its paragraphs unchanged) shows as one removed and one added; compare those by content (read the old and new text side by side). It only reads git; it never commits or tags.
 
 ## Structural Edits
 
@@ -131,7 +131,7 @@ Chapter ids come from `number` (`chapter-07`), and scene ids embed the chapter i
    - **Insert a chapter:** move each later chapter up one, highest first, because `move` refuses a number that is taken: `story move chapter chapter-09 --number 10 --path .`, then `story move chapter chapter-08 --number 9 --path .`, and so on down to the gap. Then `story add chapter "<Title>" --number 8 --path .`
    - **Move a scene:** `story move scene chapter-03-scene-02 --chapter chapter-05 --path .` puts it at the next free number in chapter 5. Add `--scene <n>` to choose the position, or use `--scene` alone to reorder within its chapter. It adds the scene's location and characters to the new chapter; trim the old chapter's `locations` and `characters` by hand if the scene was the only reason for an entry
    - **Split a chapter:** add the new chapter (making room first as above), move the scenes that belong to it with `story move scene`, then move their prose between the chapter files by hand
-   - **Merge chapters:** move the scenes into the chapter you keep with `story move scene`, then move the prose by hand. Remove the emptied chapter with `story remove chapter <id> --path .` only after checking that no clue, promise, or question still points at it (`grep -rn "chapter-NN" continuity/`): `remove` clears those references and walks statuses back instead of pointing them at the kept chapter, so repoint them to the kept chapter first. Close any numbering gap left behind with `story move chapter`, lowest first
+   - **Merge chapters:** move the scenes into the chapter you keep with `story move scene`, then move the prose by hand. Remove the emptied chapter with `story remove chapter <id> --path .` (it refuses while a `died-in`, `since`, or `learned-in` still names it) only after checking that no clue, promise, or question still points at it (`grep -rn "chapter-NN" continuity/`): `remove` clears those references and walks statuses back instead of pointing them at the kept chapter, so repoint them to the kept chapter first. Close any numbering gap left behind with `story move chapter`, lowest first
 3. `move` never edits prose. Reread for chapter numbers mentioned in the text ("back in Chapter 2") and for outline beats in the chapter bodies that no longer match
 4. Run maintenance, then fix what it reports:
 
@@ -157,6 +157,7 @@ Run `story continuity .` first to collect the deterministic findings, then check
 - Promises/questions: durable continuity records match what the chapter now reveals or withholds
 - Scene state: every chapter scene has machine-readable POV, location, participants, arcs, and state-change notes
 - World rules: magic, technology, politics, and geography stay consistent with worldbuilding files
+- Deliberate findings: a dated flashback (`timestamp runs backward`) or a promise, question, or clue left open for a sequel (`is still planted` / `is still open` once `story.md` is `complete`) is correct as written. Do not change the data to silence it; add an entry to `continuity/exemptions.md` with the finding's `code` (the name in brackets at the end of a warning, or `code` in `story continuity . --json`) and its `file`, plus a `reason`, then run `story validate .` and rerun `story continuity .` and confirm it shows as `dismissed`. Prefer `code` plus `file` (or `chapter`) over copying the message into `pattern`: a reworded message then cannot stop the entry matching or make it match something new. Use `pattern` only to narrow further, such as which promise a `complete-with-open-promise` finding on `story.md` names. Never set `code` alone. Only genuine mistakes get fixed in the frontmatter
 - References: chapter frontmatter lists every major character, location, and arc advanced in the prose. A chapter with no references is fine by design (a quiet two-hander advances nothing on paper) — only flag missing references, never empty ones.
 - Registries: indexes, word counts, and links are current after edits
 

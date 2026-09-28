@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-09-26",
-  "total": 240,
+  "last_updated": "2026-09-28",
+  "total": 242,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -1110,6 +1110,16 @@
       "install_url": "https://raw.githubusercontent.com/Maksim-Burtsev/simple-man/HEAD/plugins/simple-man/.codex-plugin/plugin.json"
     },
     {
+      "name": "since-cutoff",
+      "url": "https://github.com/MohammadHijjawi97/since-cutoff",
+      "owner": "MohammadHijjawi97",
+      "repo": "since-cutoff",
+      "description": "Finds the pinned Python dependency APIs that changed after the model's training cutoff, tests which ones the model actually gets wrong, and writes one-line AGENTS.md notes that are kept only if their example type-checks.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/MohammadHijjawi97/since-cutoff/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "skill-sync-publisher",
       "url": "https://github.com/liuyewang/skill-sync-publisher",
       "owner": "liuyewang",
@@ -2168,6 +2178,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/avalonreset/seo-dungeon/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Sendsets",
+      "url": "https://github.com/AddisonHoff/sendsets",
+      "owner": "AddisonHoff",
+      "repo": "sendsets",
+      "description": "Send cold email from Codex: connect and warm up mailboxes, build and launch outbound sequences, and answer replies through the Sendsets MCP server.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/AddisonHoff/sendsets/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Shots",

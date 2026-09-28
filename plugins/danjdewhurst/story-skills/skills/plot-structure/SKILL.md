@@ -1,6 +1,6 @@
 ---
 name: plot-structure
-description: This skill should be used when the user asks to "create a plot arc", "story structure", "add a plot point", "story timeline", "track foreshadowing", "pacing", "sagging middle", "act structure", "story arc", "plot outline", or wants to plan and manage the narrative structure of a story. It owns book-level pacing; NOT for scene outcomes or writing a chapter hook (use scene-craft).
+description: This skill should be used when the user asks to "create a plot arc", "story structure", "add a plot point", "story timeline", "track foreshadowing", "pacing", "sagging middle", "act structure", "story arc", "plot outline", "snowflake method", or wants to plan and manage the narrative structure of a story. It owns book-level pacing; NOT for scene outcomes or writing a chapter hook (use scene-craft).
 ---
 
 # Plot Structure
@@ -17,7 +17,7 @@ A story project must already exist (created via the story-init skill). Verify by
 
 1. Read `story.md` for genre, themes, and `form` (`novel`, `novella`, `novelette`, `short-story`, `flash`, `serial`, `picture-book`, `chapter-book`). For `short-story` and `flash`, use `references/short-story-form.md` instead of a multi-act beat sheet
 2. Consult `references/structure-models.md` for available structures
-3. Recommend a structure based on genre (default to three-act if unclear)
+3. Recommend a structure based on genre (default to three-act if unclear). If the user wants to design the whole book top-down before drafting, or asks for the Snowflake Method, follow `references/snowflake.md` on top of the chosen structure
 4. Update `plot/_index.md` frontmatter `structure` field
 5. Populate the story structure section with the beat sheet
 6. When CLI access is available, run `story validate .`
@@ -32,7 +32,7 @@ A story project must already exist (created via the story-init skill). Verify by
    - Type (main, subplot, character, thematic)
    - Which characters are involved
    - Which themes it serves
-   - Which MICE threads the arc carries (optional `mice-threads:` frontmatter, e.g. `[event, character]`; see `references/mice-quotient.md`)
+   - Which MICE threads the arc carries (optional `mice-threads:` frontmatter, written as a block list with one `- event` or `- character` item per line, not a `[event, character]` flow list; see `references/mice-quotient.md`)
 5. Build the arc through conversation: setup, escalations, climax, resolution
 6. Write the file using `references/arc-template.md` (or scaffold it with `story add arc "{Name}" --type main --character {id} --theme {theme}`, then fill in the sections)
 7. Save to `plot/arcs/{arc-name-kebab}.md`
@@ -62,7 +62,7 @@ When adding events:
 - Use the `| When | Event | Arc | Chapter |` table with these cell formats:
   - **When:** story-relative time for story events (e.g. `Day 1, morning`), or how long ago for backstory (e.g. `12 years ago`, `~300 years ago`)
   - **Event:** one concise line describing what happened
-  - **Arc:** the arc's display name as written in its file (e.g. `The Drowned Witness`), or `-` when the event belongs to no arc
+  - **Arc:** the arc's display name as written in its file (e.g. `The Drowned Witness`), or `-` when the event belongs to no arc. `story rename arc` rewrites ids but not display names, and nothing checks this cell, so after renaming an arc search for the old name (`grep -rn "Old Name" .`) and update each hit by hand, including the timeline rows
   - **Chapter:** `Ch {N}` once the event is written (e.g. `Ch 1`), or `-` for backstory and unwritten events
 
 When reviewing the timeline:
@@ -101,7 +101,7 @@ When pacing or the outline calls for reordering, move the files with the CLI rat
 
 - Move a scene to another chapter with `story move scene chapter-{NN}-scene-{MM} --chapter chapter-{NN} --path .` (next free number; add `--scene {M}` to place it), or reorder within its chapter with `--scene {M}` alone
 - Renumber a chapter with `story move chapter chapter-{NN} --number {N} --path .`. A taken number is refused, so to open a gap move the later chapters up one, highest first, then `story add chapter "{Title}" --number {N}`
-- `move` rewrites ids, links, and bare ids in `plot/timeline.md` and arc files, but not `Ch {N}` cells, prose, or outline beats: update those by hand, then run `story wordcount . --write`, `story validate .`, `story links .`, and `story pacing .`
+- `move` rewrites ids, links, and bare ids in `plot/timeline.md`, arc files, and the `plot/_index.md` Theme Tracking table, but not `Ch {N}` cells, prose, or outline beats: update those by hand, then run `story wordcount . --write`, `story validate .`, `story links .`, and `story pacing .`
 
 For splits, merges, and the full checklist, follow the `revision-continuity` skill's Structural Edits section.
 
@@ -127,3 +127,4 @@ Use the Story CLI when it is available. If `story` is not installed, use `bun ru
 - **`references/mice-quotient.md`** - MICE threading: milieu/inquiry/character/event threads, start/end rules, and the optional `mice-threads:` arc frontmatter
 - **`references/short-story-form.md`** - Short fiction form: one dominant change, single effect, narrow scope, and the `form` field (`story init --form short-story` or `flash`)
 - **`references/outlining-ladder.md`** - Premise → beat sheet → step outline → full outline, with exit criteria per rung (cross-links discovery-drafting)
+- **`references/snowflake.md`** - Snowflake Method: ten top-down design steps from one-sentence summary to first draft, each mapped to `story.md`, character, arc, and scene files and the CLI commands that scaffold them
