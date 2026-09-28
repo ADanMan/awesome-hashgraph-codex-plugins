@@ -879,6 +879,20 @@
       "icon": "./plugins/MedAdemBHA/docflow/assets/icon.svg"
     },
     {
+      "name": "done-gate",
+      "displayName": "done-gate",
+      "source": {
+        "source": "local",
+        "path": "./plugins/kuroudo-ai/done-gate"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Stop hook that blocks \"fixed/done\" claims when no test output or exit code appeared in that turn (Claude Code & Codex, MIT)."
+    },
+    {
       "name": "dryforge",
       "displayName": "Dryforge",
       "source": {
@@ -2886,6 +2900,21 @@
       "category": "Tools & Integrations",
       "description": "Codex-ready LinkedIn marketing bundle with a native .codex-plugin manifest and 10 skills: post writing with 16 tested hook formulas, AI-tell humanizer, pre-publish audit, comment and reply drafting, hook extraction, content planning, profile optimization, engager analytics, and thread monitoring; also works in Claude Code.",
       "icon": "./plugins/sergebulaev/linkedin-skills/assets/icon.svg"
+    },
+    {
+      "name": "loomaly",
+      "displayName": "Loomaly",
+      "source": {
+        "source": "local",
+        "path": "./plugins/loomaly/loomaly"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Ranks your site's SEO problems by what to fix first, gives Codex a fix prompt for your framework to apply in your repo, and re-checks the live page once the fix is deployed, via a hosted MCP server and four skills.",
+      "icon": "./plugins/loomaly/loomaly/assets/logo-plate.svg"
     },
     {
       "name": "costguard",

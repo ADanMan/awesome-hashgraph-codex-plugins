@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-09-28",
-  "total": 242,
+  "total": 244,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -598,6 +598,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/MedAdemBHA/docflow/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "done-gate",
+      "url": "https://github.com/kuroudo-ai/done-gate",
+      "owner": "kuroudo-ai",
+      "repo": "done-gate",
+      "description": "Stop hook that blocks \"fixed/done\" claims when no test output or exit code appeared in that turn (Claude Code & Codex, MIT).",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/kuroudo-ai/done-gate/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Dryforge",
@@ -1958,6 +1968,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/sergebulaev/linkedin-skills/HEAD/.codex-marketplace/linkedin-skills/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Loomaly",
+      "url": "https://github.com/loomaly/loomaly",
+      "owner": "loomaly",
+      "repo": "loomaly",
+      "description": "Ranks your site's SEO problems by what to fix first, gives Codex a fix prompt for your framework to apply in your repo, and re-checks the live page once the fix is deployed, via a hosted MCP server and four skills.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/loomaly/loomaly/HEAD/loomaly/.codex-plugin/plugin.json"
     },
     {
       "name": "Maestro: Costguard",
