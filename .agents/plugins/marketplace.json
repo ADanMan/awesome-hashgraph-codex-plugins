@@ -776,6 +776,21 @@
       "icon": "./plugins/hccccc01333/codex-deepseek-mini-router/assets/icon.svg"
     },
     {
+      "name": "dejavu-gates",
+      "displayName": "dejavu",
+      "source": {
+        "source": "local",
+        "path": "./plugins/WhiteBite/dejavu-gates"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Cross-session error gates that detect recurring tool-call failures and escalate remind to block, with one shared store across Codex, Claude Code, OpenCode, Gemini CLI, Cursor and more (MIT).",
+      "icon": "./plugins/WhiteBite/dejavu-gates/assets/icon.svg"
+    },
+    {
       "name": "delx-recovery",
       "displayName": "Delx Recovery",
       "source": {
