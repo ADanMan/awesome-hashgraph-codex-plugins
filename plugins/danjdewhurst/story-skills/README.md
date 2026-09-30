@@ -107,6 +107,7 @@ Every finding is exact, file-addressed, and reproducible, and CI asserts this ou
 | **verse-craft** | Writes, scans, and fixes verse: limericks, sonnets, haiku, ballads, song lyrics, rhyming picture-book text, and a character's song or prophecy, with every line's stresses and the rhyme scheme shown so the author can check them | *"Does this limerick scan?"* |
 | **line-editing** | Owns the prose pass without flattening the author's voice: line edits with a reason for each change, distinct character voices checked by `story voices`, a copyedit against the style sheet, and read-aloud and proof passes | *"Line edit chapter 3. Everyone sounds the same."* |
 | **revision-continuity** | Revises drafts, audits continuity, and keeps character state, timeline, and arc changes consistent | *"Continuity-check chapter 3"* |
+| **reader-panel** | Runs simulated persona reads of a chapter range (genre reader, line editor, sensitivity flags, continuity reader, first-page reader) before human readers see it, written as feedback files marked `source: simulated` for feedback-triage | *"Give me a simulated beta read of chapters 1 to 5"* |
 | **feedback-triage** | Collects alpha/beta reader feedback per round, synthesizes convergent and divergent notes, and hands a revision plan to revision-continuity | *"Triage the beta feedback"* |
 | **editorial-review** | Handles work with other people: sensitivity and authenticity reader briefs, a real-people and defamation check, permissions for lyrics and epigraphs, the AI-use statement, rounds with human editors, review copies, and co-authoring | *"I'm quoting a song lyric as my epigraph. What do I need?"* |
 | **series-continuity** | Starts sequels and prequels as linked projects, carries characters and world forward, and checks shared canon across books | *"Start a prequel to The Last Ember"* |
@@ -131,6 +132,14 @@ npm install -g story-skills   # then: story --help
 ```
 
 To try unreleased changes, run it straight from GitHub with `npx --yes --package github:danjdewhurst/story-skills story --help`.
+
+**Without Node.** Releases after 0.17.0 attach a standalone `story` binary for macOS (Apple silicon and Intel), Linux (x64 and arm64), and Windows (x64). Install it with Homebrew on macOS or Linux, or download the archive for your system from the [releases page](https://github.com/danjdewhurst/story-skills/releases), check it against the release's `story-skills_<version>_checksums.txt`, and put `story` on your `PATH` ([details](docs/getting-started.md#install-the-story-cli)):
+
+```shell
+brew install danjdewhurst/tap/story-skills   # then: story --help
+```
+
+The binary is the CLI only, and reports the same `story --version` as the npm package. The skills still need an agent such as Claude Code or Codex (see [Quick start](#quick-start)).
 
 From a clone, use `bun install` and then `bun run story -- --help`. Copied-skill installs don't need either: `story-maintenance` bundles a `scripts/story.js` fallback that agents run with Node.
 
@@ -181,6 +190,7 @@ The CLI is for maintenance only. Agents write story content directly to markdown
 | `story diagram relationships --path .` | Print Mermaid source for the family tree and relationships, the location route map, the story-time timeline, the clue flow, or arcs by chapter |
 | `story progress [path] --log` | Report words against `target-words`, the `deadline`, and chapter targets; `--log` records the day's count in `progress.md` for pace and a projected finish |
 | `story compare [path] --ref draft-1` | Compare chapters with an earlier draft (a git ref, or `--against` a copied project folder): word changes, added and removed chapters, and unchanged paragraphs; `--anchor ch03-p12` finds where a review-copy paragraph is now |
+| `story similarity [path] --against ../book-one` | Find passages that share a run of eight or more words with other text (a file, a folder such as your earlier books, or a git ref), with both locations and the shared words; advisory, since shared text is not proof of copying |
 
 **Publish**
 
@@ -209,7 +219,7 @@ Every command and option is in the [CLI reference](docs/cli-reference.md). For a
 A story project with deterministic checks is one an agent can advance unattended. The [`templates/github/`](templates/github/) workflows turn a story repository into a self-drafting book:
 
 - [`story-checks.yml`](templates/github/story-checks.yml) runs `story validate`, `story links`, `story continuity`, and `story report --actionable` on every push and pull request, so a chapter PR can't merge with a continuity contradiction.
-- [`draft-next-chapter.yml`](templates/github/draft-next-chapter.yml) runs [Claude Code](https://github.com/anthropics/claude-code-action) on a schedule. It asks `story next` for the next action, drafts the next chapter with the chapter-writing skill, updates scene records and continuity state, runs the maintenance checks, and opens a pull request for review. When `story next` suggests no chapter (the story is revising or complete, or every arc is resolved), it stops without drafting.
+- [`draft-next-chapter.yml`](templates/github/draft-next-chapter.yml) runs [Claude Code](https://github.com/anthropics/claude-code-action) on a schedule. It asks `story next` for the next action, drafts the next chapter with the chapter-writing skill, updates scene records and continuity state, and commits it within word, turn, and spend budgets. The agent cannot push. A second job, on a fresh runner, checks that the commit touches only the story's own markdown and holds no secret, runs the checks, pushes the branch, and opens a pull request for review: ready when the checks pass, a draft listing the failures when they do not. When `story next` suggests no chapter (the story is revising or complete, or every arc is resolved), it stops without drafting.
 
 Copy both files into `.github/workflows/` in the repository that holds your story project, add an `ANTHROPIC_API_KEY` secret, and review one chapter PR each morning.
 

@@ -2,7 +2,7 @@
 
 # Jev Social — browser-grounded social research
 
-**Jev is cool. Giving it a bounded view of social evidence is cooler.**
+**Turn Instagram, TikTok, and LinkedIn into source-cited reports through your own browser.**
 
 [![GitHub stars](https://img.shields.io/github/stars/socai-io/jev-social?style=flat-square&label=stars)](https://github.com/socai-io/jev-social)
 [![Skills installs](https://skills.sh/b/socai-io/jev-social)](https://skills.sh/socai-io/jev-social/jev-social)
@@ -22,18 +22,18 @@ Jev chooses each next operation: search, open a particular post or profile, read
   <img src="https://raw.githubusercontent.com/socai-io/jev-social/main/docs/platforms/linkedin.svg" height="32" alt="LinkedIn">
 </p>
 
-[⭐ Star Jev Social](https://github.com/socai-io/jev-social) · [Live site](https://socai-io.github.io/jev-social/) · [Social research guide](https://socai-io.github.io/jev-social/social-research/) · [Security and data flow](SECURITY.md) · [Real 64-second Jev report](docs/example-report.md) · [Recorded TikTok video evidence](docs/tiktok-evidence.md) · [Discord](https://discord.gg/CpQdA7bwt8) · [Jev](https://typesafe.ai/)
+[⭐ Star Jev Social](https://github.com/socai-io/jev-social) · [Watch the recorded run](https://socai-io.github.io/jev-social/recorded-run/) · [Live site](https://socai-io.github.io/jev-social/) · [Social research guide](https://socai-io.github.io/jev-social/social-research/) · [Security and data flow](SECURITY.md) · [Real 64-second Jev report](docs/example-report.md) · [Recorded TikTok video evidence](docs/tiktok-evidence.md) · [Discord](https://discord.gg/CpQdA7bwt8) · [Jev](https://typesafe.ai/)
 
 ## Try it
 
-With Node 20+ and Chrome already signed in to Instagram, TikTok, or LinkedIn:
+With Node 22+ and Chrome already signed in to Instagram, TikTok, or LinkedIn:
 
 ```bash
-npx github:socai-io/jev-social#v0.1.10 onboard
-npx github:socai-io/jev-social#v0.1.10
+npx github:socai-io/jev-social#v0.1.13 onboard
+npx github:socai-io/jev-social#v0.1.13
 ```
 
-With the default OpenRouter provider, onboarding prompts for the OpenRouter key. On macOS and Windows, onboarding can also install the official `socai CLI` when it is missing. On Linux, install a current `socai CLI` from source first, then put it on `PATH` or set `SOCAI_BIN`. The second command opens the loopback-only demo.
+With the default OpenRouter provider, onboarding prompts for the OpenRouter key. On macOS and Windows, onboarding can also install the official `socai CLI` when it is missing. On Linux, install a current `socai CLI` from source first, then put it on `PATH` or set `SOCAI_BIN`. Unattended or non-interactive installation requires the explicit `--install` flag. The second command opens the loopback-only demo.
 
 ![Earlier routing-only demo](https://raw.githubusercontent.com/socai-io/jev-social/main/docs/jev-social.gif)
 
@@ -106,37 +106,37 @@ No live benchmark results are published yet. The commands, row contract, timing 
 
 ## Run it
 
-Node 20+, a decision provider (OpenRouter Jev or a loopback Kev server), and a current `socai CLI`.
+Node 22+, a decision provider (OpenRouter Jev or a loopback Kev server), and a current `socai CLI`.
 
 Fastest OpenRouter path — no repository clone required. With the default OpenRouter provider, onboarding prompts for the OpenRouter key. On macOS and Windows, onboarding can also install the official `socai CLI` when it is missing. On Linux, install a current `socai CLI` from source first, then put it on `PATH` or set `SOCAI_BIN`.
 
 ```bash
-npx github:socai-io/jev-social#v0.1.10 onboard
-npx github:socai-io/jev-social#v0.1.10
+npx github:socai-io/jev-social#v0.1.13 onboard
+npx github:socai-io/jev-social#v0.1.13
 ```
 
 To let Codex invoke the same browser-grounded workflow through GitHub CLI 2.101 or newer:
 
 ```bash
-gh skill install socai-io/jev-social jev-social@v0.1.10 --agent codex --scope user
+gh skill install socai-io/jev-social jev-social@v0.1.13 --agent codex --scope user
 ```
 
 Or install it from the [skills.sh directory](https://skills.sh/socai-io/jev-social/jev-social) with the cross-agent Skills CLI:
 
 ```bash
-npx skills add https://github.com/socai-io/jev-social/tree/v0.1.10/skills/jev-social --skill jev-social
+npx skills add https://github.com/socai-io/jev-social/tree/v0.1.13/skills/jev-social --skill jev-social
 ```
 
-For OpenCode, install the tested v0.1.10 skill into its natively discovered project skill directory:
+For OpenCode, install the tested v0.1.13 skill into its natively discovered project skill directory:
 
 ```bash
-npx skills add https://github.com/socai-io/jev-social/tree/v0.1.10/skills/jev-social --agent opencode
+npx skills add https://github.com/socai-io/jev-social/tree/v0.1.13/skills/jev-social --agent opencode
 ```
 
-For OpenClaw, install the v0.1.10 skill from its immutable runtime commit into the current workspace:
+For OpenClaw, install the v0.1.13 skill from its immutable Skill commit into the current workspace:
 
 ```bash
-npx skills add https://github.com/socai-io/jev-social/tree/951924398cc41bc7abc0921a0e10c16c6fd82287/skills/jev-social --skill jev-social --agent openclaw --copy
+npx skills add https://github.com/socai-io/jev-social/tree/5b8fcf3fa99bb01924d77598d54085eb8841162b/skills/jev-social --skill jev-social --agent openclaw --copy
 ```
 
 The skill pins the documented Jev Social CLI release, preserves its read-only and login-gate boundaries, and returns source-linked evidence instead of raw run JSON. Platform availability is checked against the installed socai CLI before a run.
@@ -144,6 +144,8 @@ The skill pins the documented Jev Social CLI release, preserves its read-only an
 ## Ecosystem
 
 The released Jev Social Skill is also available in [Build with Claude](https://github.com/davepoon/buildwithclaude/tree/5864a032c1656350343fa982246ca9ffdd889c34/plugins/all-skills/skills/jev-social). That catalog copy pins the v0.1.10 runtime and preserves the same read-only boundaries.
+
+[Agentic Awesome Skills](https://github.com/sickn33/agentic-awesome-skills/blob/463b781eb48c8b3a48869090a2dbd56eeb41e7c3/skills/jev-social/SKILL.md) independently distributes a v0.1.10 catalog copy. Its catalog marks the workflow `critical` risk and requires explicit approval before the first remote package fetch; inclusion is not a security endorsement.
 
 [Hermes Jev Skills](https://github.com/kerpopule/hermes-jev-skills/blob/650090df0737d42806c90f6cecfea731ef753abb/skills/jev-social-research/SKILL.md) ships a separate bounded social-research workflow and links Jev Social as a related runnable implementation. It is not the Jev Social runtime and has its own privacy and execution contract.
 
@@ -159,7 +161,7 @@ npm start -- onboard
 npm start
 ```
 
-To run v0.1.10 through local [Kev](https://github.com/jaredpalmer/kev), start its TypeSafe-compatible server on loopback, then launch the tagged Jev Social release without an OpenRouter key:
+To run v0.1.13 through local [Kev](https://github.com/jaredpalmer/kev), start its TypeSafe-compatible server on loopback, then launch the tagged Jev Social release without an OpenRouter key:
 
 ```bash
 # Terminal 1
@@ -174,7 +176,7 @@ export JEV_SOCIAL_SYSTEM_ONE_URL=http://127.0.0.1:8009/v1/systemone
 export JEV_SOCIAL_SYSTEM_ONE_MODEL=kev-latest
 export JEV_SOCIAL_SYSTEM_ONE_TIMEOUT_MS=120000
 export OPENROUTER_REPORT_MODEL=off
-npx github:socai-io/jev-social#v0.1.10
+npx github:socai-io/jev-social#v0.1.13
 ```
 
 The local endpoint must be plain HTTP on `localhost`, `127.0.0.1`, or `::1`, with the exact `/v1/systemone` path. Jev Social does not send the OpenRouter key to it, rejects redirects and oversized responses, and keeps the same typed choice validation. Local inference allows up to 120 seconds by default; lower it with `JEV_SOCIAL_SYSTEM_ONE_TIMEOUT_MS`. `OPENROUTER_REPORT_MODEL=off` uses the deterministic source-linked report; the browser and social-platform traffic still runs through local `socai` and Chrome.

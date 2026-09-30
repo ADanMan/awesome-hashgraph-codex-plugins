@@ -7,6 +7,7 @@ Security updates are provided for the current maintained release line.
 | Version line | Status |
 | --- | --- |
 | `2.x` latest | Supported |
+| `@ndycode/codex-multi-auth` (legacy scoped name) | Not supported — migrate to `codex-multi-auth` |
 | pre-`1.0` historical releases | Not supported |
 
 ---

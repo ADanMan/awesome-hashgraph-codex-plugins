@@ -539,6 +539,21 @@
       "icon": "./plugins/yimwoo/codex-agenteam/assets/agenteam-icon.png"
     },
     {
+      "name": "codex-attachment-manager",
+      "displayName": "Codex Attachment Manager",
+      "source": {
+        "source": "local",
+        "path": "./plugins/chipfighter/codex-attachment-manager"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Choose which past images in a Codex desktop task go to the model with your next message; unchecked ones become short placeholders, so long image-heavy tasks keep going without starting over.",
+      "icon": "./plugins/chipfighter/codex-attachment-manager/assets/logo.png"
+    },
+    {
       "name": "codex-howto",
       "displayName": "Codex How To",
       "source": {
@@ -1008,21 +1023,6 @@
       "category": "Development & Workflow",
       "description": "Save 71% on MCP tool call tokens by wrapping any server with GCF encoding, with session stats hook and setup skill.",
       "icon": "./plugins/blackwell-systems/gcf-codex-plugin/assets/icon.svg"
-    },
-    {
-      "name": "generative-media-skills",
-      "displayName": "Generative Media Skills",
-      "source": {
-        "source": "local",
-        "path": "./plugins/SamurAIGPT/Generative-Media-Skills"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Development & Workflow",
-      "description": "13 skills for image, video, and audio generation using 100+ models - FLUX, Midjourney v7, Veo3, Kling 3.0, Suno, and HunyuanVideo via muapi.ai.",
-      "icon": "./plugins/SamurAIGPT/Generative-Media-Skills/assets/icon.svg"
     },
     {
       "name": "codex-goal-progress",
@@ -1614,7 +1614,7 @@
       },
       "category": "Development & Workflow",
       "description": "Deploy apps to Sealos Cloud from Codex with readiness checks, Dockerfile generation, Compose conversion, image builds, and rollout updates.",
-      "icon": "./plugins/labring/sealos-skills/assets/logo.svg"
+      "icon": "./plugins/labring/sealos-skills/plugins/sealos/assets/logo.svg"
     },
     {
       "name": "session-orchestrator",

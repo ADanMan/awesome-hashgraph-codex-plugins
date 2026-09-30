@@ -75,6 +75,8 @@ var FINDING_CODES = {
   "exemption-misspelled-key": "error",
   "exemption-chapter-not-carried": "error",
   "style-use-equals-avoid": "error",
+  "style-sample-missing": "warning",
+  "style-sample-own-chapters": "warning",
   "duplicate-session-date": "error",
   "research-no-sources": "warning",
   "research-unsettled": "warning",
@@ -197,6 +199,13 @@ var FINDING_CODES = {
   "prose-avoided-spelling": "warning",
   "prose-uniform-sentences": "warning",
   "prose-similar-names": "warning",
+  "prose-baseline-sentences": "warning",
+  "prose-baseline-paragraphs": "warning",
+  "prose-baseline-dialogue": "warning",
+  "prose-baseline-filter-words": "warning",
+  "prose-baseline-adverbs": "warning",
+  "prose-baseline-small": "warning",
+  "style-sample-unreadable": "warning",
   "pacing-no-hook": "warning",
   "pacing-no-sequel": "warning",
   "pacing-easy-wins": "warning",
@@ -216,6 +225,8 @@ var FINDING_CODES = {
   "name-shared-initial": "warning",
   "context-file-skipped": "warning",
   "story-missing-at-ref": "warning",
+  "similarity-shared-passage": "warning",
+  "similarity-no-reference-text": "warning",
   "derived-ifid": "warning",
   "scene-outside-book": "warning",
   "scene-no-location": "warning",
@@ -2364,6 +2375,7 @@ function analyzeChapter(prose, rules) {
   return {
     words: words.length,
     narrationWords: narration.length,
+    paragraphs: paragraphs.length,
     sentences: sentenceStats(sentences),
     filterWords,
     adverbs,
@@ -2375,18 +2387,18 @@ function analyzeChapter(prose, rules) {
     phraseSentences: sentenceList.map((sentence) => splitWords(sentence).map(normalizeWord))
   };
 }
-function chapterFindings(label, analysis, thresholds = PROSE_THRESHOLDS) {
+function chapterFindings(label, analysis, thresholds = PROSE_THRESHOLDS, { baseline = false } = {}) {
   const findings = [];
   for (const variant of analysis.variants) {
     findings.push(warn("prose-avoided-spelling", `${label} uses "${variant.avoid}" ${times(variant.count)}; ${variant.source} prefers "${variant.use}"`, label));
   }
   const rated = analysis.narrationWords >= thresholds.minRateWords;
   const filterRate = perThousand(total(analysis.filterWords), analysis.narrationWords);
-  if (rated && filterRate > thresholds.filterPerThousand) {
+  if (!baseline && rated && filterRate > thresholds.filterPerThousand) {
     findings.push(warn("prose-filter-words", `${label} has ${formatAgainst(filterRate, thresholds.filterPerThousand, "over")} filter words per 1,000 narration words (over ${thresholds.filterPerThousand}): ${formatCounts(analysis.filterWords, 5)}`, label));
   }
   const adverbRate = perThousand(total(analysis.adverbs), analysis.narrationWords);
-  if (rated && adverbRate > thresholds.adverbsPerThousand) {
+  if (!baseline && rated && adverbRate > thresholds.adverbsPerThousand) {
     findings.push(warn("prose-adverbs", `${label} has ${formatAgainst(adverbRate, thresholds.adverbsPerThousand, "over")} -ly adverbs per 1,000 narration words (over ${thresholds.adverbsPerThousand}): ${formatCounts(analysis.adverbs, 5)}`, label));
   }
   const bookisms = total(analysis.bookisms);
@@ -2396,6 +2408,92 @@ function chapterFindings(label, analysis, thresholds = PROSE_THRESHOLDS) {
   const stats = analysis.sentences;
   if (stats.count >= thresholds.uniformMinSentences && stats.spread < thresholds.uniformSpread) {
     findings.push(warn("prose-uniform-sentences", `${label} sentence lengths are uniform (spread ${formatAgainst(stats.spread, thresholds.uniformSpread, "under")} words over ${stats.count} sentences); vary the rhythm`, label));
+  }
+  return findings;
+}
+var BASELINE_TOLERANCES = {
+  minSampleWords: 2000,
+  minSentences: 10,
+  sentenceLength: 0.3,
+  paragraphLength: 0.5,
+  dialogueShare: 20,
+  rateFloor: 3,
+  rateShare: 0.5,
+  signatureWords: 20,
+  signatureMinCount: 3
+};
+function baselineProfile(samples) {
+  const analyses = samples.map((sample) => sample.analysis);
+  const sum = (pick) => analyses.reduce((total, analysis) => total + pick(analysis), 0);
+  const words = sum((analysis) => analysis.words);
+  const narrationWords = sum((analysis) => analysis.narrationWords);
+  const lengths = samples.flatMap((sample) => sample.sentenceLengths);
+  const counts = new Map;
+  for (const sample of samples) {
+    for (const word of sample.contentWords) {
+      increment(counts, word);
+    }
+  }
+  return {
+    samples: samples.map((sample) => sample.file),
+    words,
+    narrationWords,
+    sentences: sentenceStats(lengths),
+    paragraphMean: sum((analysis) => analysis.paragraphs) === 0 ? 0 : words / sum((analysis) => analysis.paragraphs),
+    dialogueShare: words === 0 ? 0 : (words - narrationWords) * 100 / words,
+    filterPerThousand: perThousand(sum((analysis) => total(analysis.filterWords)), narrationWords),
+    adverbsPerThousand: perThousand(sum((analysis) => total(analysis.adverbs)), narrationWords),
+    signatureWords: sortCounts(counts).filter((entry) => entry.count >= BASELINE_TOLERANCES.signatureMinCount).slice(0, BASELINE_TOLERANCES.signatureWords).map((entry) => entry.word),
+    usable: narrationWords >= BASELINE_TOLERANCES.minSampleWords
+  };
+}
+function contentWords(prose, rules) {
+  return splitWords(proseParagraphs(prose).join(`
+
+`)).map(normalizeWord).filter((word) => word.length >= 4 && !ECHO_STOPWORDS.has(word) && !PHRASE_STOPWORDS.has(word) && !isName(word, rules) && !/^\p{N}+$/u.test(word));
+}
+function sentenceLengths(prose) {
+  return proseParagraphs(prose).flatMap((paragraph) => splitSentences(paragraph)).map((sentence) => splitWords(sentence).length).filter((count) => count > 0);
+}
+function baselineFigures(analysis, profile, chapterWords) {
+  const used = new Set(chapterWords);
+  return {
+    sentenceMean: analysis.sentences.mean,
+    paragraphMean: analysis.paragraphs === 0 ? 0 : analysis.words / analysis.paragraphs,
+    dialogueShare: analysis.words === 0 ? 0 : (analysis.words - analysis.narrationWords) * 100 / analysis.words,
+    filterPerThousand: perThousand(total(analysis.filterWords), analysis.narrationWords),
+    adverbsPerThousand: perThousand(total(analysis.adverbs), analysis.narrationWords),
+    signatureWordsUsed: profile.signatureWords.filter((word) => used.has(word)).length
+  };
+}
+function baselineFindings(label, analysis, figures, profile, tolerances = BASELINE_TOLERANCES) {
+  const findings = [];
+  if (!profile.usable || analysis.words < PROSE_THRESHOLDS.minRateWords) {
+    return findings;
+  }
+  const rated = analysis.narrationWords >= PROSE_THRESHOLDS.minRateWords;
+  const relative = (value, base, share) => base > 0 && Math.abs(value - base) > base * share;
+  const direction = (value, base, more, fewer) => value > base ? more : fewer;
+  if (analysis.sentences.count >= tolerances.minSentences && relative(figures.sentenceMean, profile.sentences.mean, tolerances.sentenceLength)) {
+    findings.push(warn("prose-baseline-sentences", `${label} sentences average ${formatRate(figures.sentenceMean)} words, ${direction(figures.sentenceMean, profile.sentences.mean, "longer", "shorter")} than your samples' ${formatRate(profile.sentences.mean)} (tolerance ${tolerances.sentenceLength * 100}%)`, label));
+  }
+  if (relative(figures.paragraphMean, profile.paragraphMean, tolerances.paragraphLength)) {
+    findings.push(warn("prose-baseline-paragraphs", `${label} paragraphs average ${formatRate(figures.paragraphMean)} words, ${direction(figures.paragraphMean, profile.paragraphMean, "longer", "shorter")} than your samples' ${formatRate(profile.paragraphMean)} (tolerance ${tolerances.paragraphLength * 100}%)`, label));
+  }
+  if (Math.abs(figures.dialogueShare - profile.dialogueShare) > tolerances.dialogueShare) {
+    findings.push(warn("prose-baseline-dialogue", `${label} is ${formatRate(figures.dialogueShare)}% dialogue, ${direction(figures.dialogueShare, profile.dialogueShare, "more", "less")} than your samples' ${formatRate(profile.dialogueShare)}% (tolerance ${tolerances.dialogueShare} points)`, label));
+  }
+  const rateDrift = (name, field) => {
+    const allowed = Math.max(tolerances.rateFloor, profile[field] * tolerances.rateShare);
+    return Math.abs(figures[field] - profile[field]) > allowed ? `${label} has ${formatRate(figures[field])} ${name} per 1,000 narration words, ${direction(figures[field], profile[field], "more", "fewer")} than your samples' ${formatRate(profile[field])} (tolerance ${formatRate(allowed)})` : null;
+  };
+  const filterDrift = rated ? rateDrift("filter words", "filterPerThousand") : null;
+  if (filterDrift !== null) {
+    findings.push(warn("prose-baseline-filter-words", filterDrift, label));
+  }
+  const adverbDrift = rated ? rateDrift("-ly adverbs", "adverbsPerThousand") : null;
+  if (adverbDrift !== null) {
+    findings.push(warn("prose-baseline-adverbs", adverbDrift, label));
   }
   return findings;
 }
@@ -2438,6 +2536,12 @@ function formatProseReport(report) {
   if (!report.styleSheet) {
     lines.push("No style-sheet.md: spelling and watch-word checks are off");
   }
+  const profile = report.baseline;
+  if (profile) {
+    const stats = profile.sentences;
+    lines.push(`Baseline from ${profile.samples.length} ${profile.samples.length === 1 ? "sample" : "samples"} (${profile.words} words): sentences ${formatRate(stats.mean)} words (spread ${formatRate(stats.spread)}), paragraphs ${formatRate(profile.paragraphMean)} words, ${formatRate(profile.dialogueShare)}% dialogue, ${formatRate(profile.filterPerThousand)} filter words and ${formatRate(profile.adverbsPerThousand)} -ly adverbs per 1k narration words`);
+    lines.push(profile.usable ? `  Signature words: ${profile.signatureWords.join(", ") || "none"}` : `  Too few sample words to compare with (${profile.narrationWords} of ${BASELINE_TOLERANCES.minSampleWords} narration words): the fixed limits apply`);
+  }
   for (const chapter of report.chapters) {
     const analysis = chapter.analysis;
     const stats = analysis.sentences;
@@ -2446,6 +2550,10 @@ function formatProseReport(report) {
     lines.push(`  Filter words: ${formatRate(perThousand(total(analysis.filterWords), analysis.narrationWords))} per 1k narration words${countSuffix(analysis.filterWords)}`);
     lines.push(`  -ly adverbs: ${formatRate(perThousand(total(analysis.adverbs), analysis.narrationWords))} per 1k narration words${countSuffix(analysis.adverbs)}`);
     lines.push(`  Dialogue tags: ${formatCounts(analysis.plainTags, 4) || "none plain"}; said-bookisms: ${formatCounts(analysis.bookisms, 5) || "none"}`);
+    if (chapter.baseline && profile.usable) {
+      const figures = chapter.baseline;
+      lines.push(`  Against the baseline: paragraphs ${formatRate(figures.paragraphMean)} words, ${formatRate(figures.dialogueShare)}% dialogue, signature words ${figures.signatureWordsUsed} of ${profile.signatureWords.length}`);
+    }
     lines.push(`  Echoes within ${PROSE_THRESHOLDS.echoWindow} words: ${formatCounts(analysis.echoes, 5) || "none"}`);
     if (analysis.watch.length > 0) {
       lines.push(`  Watch words: ${analysis.watch.map((entry) => `${entry.word} ${entry.count}`).join(", ")}`);
@@ -2642,7 +2750,7 @@ var OPTIONS = [
   { name: "write", help: ["Update chapter word-count frontmatter"] },
   { name: "log", help: ["Record today's word count in progress.md"] },
   { name: "ref", value: "<git-ref>", help: ["Earlier draft as a git branch, tag, or commit", "for compare"] },
-  { name: "against", value: "<path>", help: ["Earlier draft as another project folder for compare"] },
+  { name: "against", value: "<path>", help: ["Earlier draft as another project folder for", "compare; text to check for similarity (a file,", "folder, or git ref)"] },
   { name: "anchor", value: "<label>", repeatable: true, help: ["Review-copy paragraph label (ch03-p12) to find", "in the current text for compare; repeatable"] },
   { name: "path", value: "<path>", help: ["Project root for every command except init and", "import"] },
   { name: "out", value: "<file>", help: ["Output path for export/build/synopsis/diagram"] },
@@ -2659,7 +2767,9 @@ var OPTIONS = [
   { name: "done", value: "<pass>", help: ["Mark a revision pass done for passes"] },
   { name: "max-filter-words", value: "<n>", help: ["Warn above n filter words per 1,000 narration", "words for prose (default 10)"] },
   { name: "max-adverbs", value: "<n>", help: ["Warn above n -ly adverbs per 1,000 narration", "words for prose (default 12)"] },
+  { name: "baseline", help: ["Compare prose with style-sheet.md samples of your", "own writing (on when samples are listed; --baseline", "false turns it off)"] },
   { name: "max-bookisms", value: "<n>", help: ["Warn above n said-bookism tags in a chapter for", "prose (default 2)"] },
+  { name: "min-words", value: "<n>", help: ["Shortest shared run of words similarity reports", "(default 8, at least 5)"] },
   { name: "pages", value: "<n>", help: ["Synopsis length for synopsis (1 or 3)"] },
   { name: "actionable", help: ["Include next actions in report"] },
   { name: "json", help: ["Print one JSON result object (apiVersion,", "command, ok, data, diagnostics, writes) instead", "of text, for the check and analysis commands"] },
@@ -3130,6 +3240,87 @@ function formatStateChanges(changes, atChapterId) {
 `;
 }
 
+// src/deaths.js
+var STATUS_PROGRESSIONS = new WeakMap;
+function statusProgressions(character) {
+  if (!STATUS_PROGRESSIONS.has(character)) {
+    const list = Array.isArray(character.frontmatter.progressions) ? character.frontmatter.progressions : [];
+    STATUS_PROGRESSIONS.set(character, list.map((item, index) => ({ index, entry: progressionEntry(item) })).filter(({ entry }) => entry !== null && entry.field === "status").map(({ index, entry }) => ({ index, from: entry.from, value: String(entry.value) })));
+  }
+  return STATUS_PROGRESSIONS.get(character);
+}
+function progressionStatusAt(character, chapterId, chronology) {
+  let status = String(character.status);
+  let from = "";
+  let deadFrom = "";
+  if (chronology.numbers.has(chapterId) && statusProgressions(character).length > 0) {
+    for (const change of entityStateAt(character.frontmatter, chapterId, chronology).changes) {
+      if (change.field !== "status") {
+        continue;
+      }
+      const value = String(change.value);
+      if (value === "deceased" && status !== "deceased") {
+        deadFrom = change.from;
+      }
+      status = value;
+      from = change.from;
+    }
+  }
+  return { status, from, deadFrom };
+}
+function progressionDeathAt(character, chapterId, chronology) {
+  const from = progressionDeathFrom(character, chapterId, chronology);
+  if (from === null || from !== "" && !happensAfter(chronology, chapterId, from)) {
+    return null;
+  }
+  return { from };
+}
+function progressionDeathFrom(character, chapterId, chronology) {
+  const { status, deadFrom } = progressionStatusAt(character, chapterId, chronology);
+  if (status !== "deceased" || character.diedIn && deadFrom === "") {
+    return null;
+  }
+  if (character.diedIn && (character.revivedIn === "" || !happensAfter(chronology, deadFrom, character.revivedIn))) {
+    return null;
+  }
+  return deadFrom;
+}
+function characterLifeline(character, chronology) {
+  const status = String(character.status ?? "");
+  const chapters = storyOrder(chronology);
+  if (chapters.length === 0 || character.diedIn && !chronology.numbers.has(character.diedIn)) {
+    const dead = status === "deceased";
+    return { deadAtStart: dead, deadAtEnd: dead, events: [] };
+  }
+  const leadIn = status === "deceased" && Boolean(character.diedIn) && statusProgressions(character).some(({ from, value }) => value !== "deceased" && happensAfter(chronology, character.diedIn, from));
+  const deadAtStart = status === "deceased" && (!character.diedIn || leadIn);
+  if (!character.diedIn && statusProgressions(character).length === 0) {
+    return { deadAtStart, deadAtEnd: deadAtStart, events: [] };
+  }
+  const window = deathWindow(character, chronology);
+  const events = [];
+  let dead = deadAtStart;
+  for (const chapter of chapters) {
+    const byDiedIn = window !== null && (chapter === window.died || window.deadIn(chapter));
+    const beforeDeath = leadIn && happensAfter(chronology, window.died, chapter) && progressionStatusAt(character, chapter, chronology).status === "deceased";
+    const now = byDiedIn || beforeDeath || progressionDeathFrom(character, chapter, chronology) !== null;
+    if (!now && dead && chapter !== window?.revived && progressionStatusAt(character, chapter, chronology).from === "") {
+      continue;
+    }
+    if (now !== dead) {
+      events.push(now ? { type: "death", chapter, source: chapter === window?.died ? "died-in" : "progression" } : { type: "revival", chapter, source: chapter === window?.revived ? "revived-in" : "progression" });
+      dead = now;
+    }
+  }
+  return { deadAtStart, deadAtEnd: dead, events };
+}
+function revivedBy(lifeline, chapterId, chronology) {
+  return chronology.numbers.has(chapterId) && lifeline.events.some((event) => event.type === "revival" && !happensAfter(chronology, event.chapter, chapterId));
+}
+function storyOrder(chronology) {
+  return [...chronology.numbers.keys()].sort((left, right) => chronology.numbers.get(left) - chronology.numbers.get(right) || (left < right ? -1 : left > right ? 1 : 0)).sort((left, right) => chronology.after(left, right) ? 1 : chronology.after(right, left) ? -1 : 0);
+}
+
 // src/continuity.js
 var CHEKHOV_CHAPTER_GAP = 3;
 function checkContinuity(project) {
@@ -3234,50 +3425,6 @@ function checkStatusAppearances(project, character, chronology, warnings) {
       warnings.push(warn("progression-deceased-in-cast", `${entryLabel} lists ${character.id}, whose progressions make them deceased from ${death.from}; move appearances after the death to mentions`, entryLabel, chapterOf(entry)));
     }
   }
-}
-var STATUS_PROGRESSIONS = new WeakMap;
-function statusProgressions(character) {
-  if (!STATUS_PROGRESSIONS.has(character)) {
-    const list = Array.isArray(character.frontmatter.progressions) ? character.frontmatter.progressions : [];
-    STATUS_PROGRESSIONS.set(character, list.map((item, index) => ({ index, entry: progressionEntry(item) })).filter(({ entry }) => entry !== null && entry.field === "status").map(({ index, entry }) => ({ index, from: entry.from, value: String(entry.value) })));
-  }
-  return STATUS_PROGRESSIONS.get(character);
-}
-function progressionStatusAt(character, chapterId, chronology) {
-  let status = String(character.status);
-  let from = "";
-  let deadFrom = "";
-  if (chronology.numbers.has(chapterId) && statusProgressions(character).length > 0) {
-    for (const change of entityStateAt(character.frontmatter, chapterId, chronology).changes) {
-      if (change.field !== "status") {
-        continue;
-      }
-      const value = String(change.value);
-      if (value === "deceased" && status !== "deceased") {
-        deadFrom = change.from;
-      }
-      status = value;
-      from = change.from;
-    }
-  }
-  return { status, from, deadFrom };
-}
-function progressionDeathAt(character, chapterId, chronology) {
-  const from = progressionDeathFrom(character, chapterId, chronology);
-  if (from === null || from !== "" && !happensAfter(chronology, chapterId, from)) {
-    return null;
-  }
-  return { from };
-}
-function progressionDeathFrom(character, chapterId, chronology) {
-  const { status, deadFrom } = progressionStatusAt(character, chapterId, chronology);
-  if (status !== "deceased" || character.diedIn && deadFrom === "") {
-    return null;
-  }
-  if (character.diedIn && (character.revivedIn === "" || !happensAfter(chronology, deadFrom, character.revivedIn))) {
-    return null;
-  }
-  return deadFrom;
 }
 function progressionIndex(character, from) {
   return statusProgressions(character).filter((entry) => entry.from === from).pop().index;
@@ -4354,6 +4501,7 @@ var PLACEHOLDERS = new Set([
   `1. Opening beat
 2. Escalation
 3. Turn or decision`,
+  "The book's house decisions, kept the way a copyeditor keeps them. Read this before drafting or revising prose. `story prose` enforces the lists in the frontmatter: `dialect` (british, american, or unspecified) flags the other dialect's common spellings, each `preferred` entry flags its `avoid` form, `watch-words` are counted in every chapter, and `allow-words` silences a built-in filter word or adverb. Add a `samples` list of your own prose (`../book-one`, approved chapters) and `story prose` compares each chapter with it instead of fixed limits.",
   "The book's house decisions, kept the way a copyeditor keeps them. Read this before drafting or revising prose. `story prose` enforces the lists in the frontmatter: `dialect` (british, american, or unspecified) flags the other dialect's common spellings, each `preferred` entry flags its `avoid` form, `watch-words` are counted in every chapter, and `allow-words` silences a built-in filter word or adverb.",
   "Narrative distance, sentence rhythm, register, and what this prose never does. Quote two or three sentences that sound exactly right.",
   "Record one `preferred` entry per variant (`use: grey`, `avoid: gray`) and note usage rules here.",
@@ -5077,7 +5225,9 @@ function canonText(value) {
   return typeof value === "string" ? value.normalize("NFC") : value;
 }
 function checkCanonDeaths(book, earlierBooks, errors) {
-  const deaths = firstMatching(earlierBooks, "characters", (character) => character.status === "deceased");
+  const deaths = deathsBefore(earlierBooks);
+  const { chronology, lifelines } = bookLifelines(book);
+  const deadAt = (id, chapterId) => deaths.has(id) && !(lifelines.has(id) && revivedBy(lifelines.get(id), chapterId, chronology));
   for (const character of book.project.characters) {
     const death = deaths.get(character.id);
     if (!death) {
@@ -5088,18 +5238,43 @@ function checkCanonDeaths(book, earlierBooks, errors) {
     }
   }
   for (const record of book.project.chapters.concat(book.project.scenes)) {
+    const chapterId = record.chapter ?? record.id;
     for (const [id, death] of deaths) {
-      if (record.characters.includes(id) || record.pov === id && !record.mentions.includes(id)) {
+      if ((record.characters.includes(id) || record.pov === id && !record.mentions.includes(id)) && deadAt(id, chapterId)) {
         errors.push(err("canon-posthumous-appearance", `${bookFile(book, record.file)} lists ${id}, who died in earlier book ${death.title}; move appearances to mentions`, bookFile(book, record.file)));
       }
     }
   }
   for (const entry of knowledgeEntries(book)) {
     const death = deaths.get(entry.character);
-    if (death && entry.learnedIn) {
+    if (death && entry.learnedIn && deadAt(entry.character, entry.learnedIn)) {
       errors.push(err("canon-posthumous-learning", `${bookFile(book, entry.file)} knowledge-state[${entry.index}] has ${entry.character} learn something in ${entry.learnedIn}, but ${entry.character} died in earlier book ${death.title}; drop learned-in or the entry`, bookFile(book, entry.file)));
     }
   }
+}
+function deathsBefore(earlierBooks) {
+  const deaths = new Map;
+  for (const earlier of earlierBooks) {
+    const { lifelines } = bookLifelines(earlier);
+    for (const character of earlier.project.characters) {
+      const lifeline = lifelines.get(character.id);
+      if (lifeline.deadAtEnd && (lifeline.events.length > 0 || !deaths.has(character.id))) {
+        deaths.set(character.id, earlier);
+      } else if (!lifeline.deadAtEnd && lifeline.events.some((event) => event.type === "revival")) {
+        deaths.delete(character.id);
+      }
+    }
+  }
+  return deaths;
+}
+var LIFELINES = new WeakMap;
+function bookLifelines(book) {
+  if (!LIFELINES.has(book.project)) {
+    const chronology = chapterChronology(book.project);
+    const lifelines = new Map(book.project.characters.map((character) => [character.id, characterLifeline(character, chronology)]));
+    LIFELINES.set(book.project, { chronology, lifelines });
+  }
+  return LIFELINES.get(book.project);
 }
 function checkDestroyedArtifacts(book, earlierBooks, errors, warnings) {
   const destroyed = firstMatching(earlierBooks, "artifacts", (artifact) => artifact.status === "destroyed");
@@ -5992,6 +6167,219 @@ function formatNumber2(value) {
 // src/config.js
 import fs3 from "node:fs";
 import path7 from "node:path";
+
+// src/similarity.js
+var SIMILARITY_DEFAULTS = { minWords: 8 };
+var MIN_SHINGLE = 5;
+var MAX_PLACES = 1000;
+var QUOTE_WORDS = 24;
+var CJK = "\\p{sc=Han}\\p{sc=Hiragana}\\p{sc=Katakana}";
+var WORD_CHAR = `(?:(?![${CJK}])[\\p{L}\\p{N}\\p{M}])`;
+var WORD_PATTERN2 = new RegExp(`[${CJK}]|${WORD_CHAR}+(?:['’ʼ]${WORD_CHAR}+)*`, "gu");
+function similarityOptions(options = {}) {
+  const settings = { ...SIMILARITY_DEFAULTS };
+  const raw = options["min-words"];
+  if (raw !== undefined) {
+    const text = String(raw).trim();
+    if (!/^\d+$/.test(text) || Number(text) < MIN_SHINGLE || !Number.isSafeInteger(Number(text))) {
+      throw usageError(`--min-words must be a whole number ${MIN_SHINGLE} or more, such as ${SIMILARITY_DEFAULTS.minWords}`);
+    }
+    settings.minWords = Number(text);
+  }
+  return settings;
+}
+function tokenizeDocument(paragraphs) {
+  const words = [];
+  paragraphs.forEach((paragraph, index) => {
+    for (const match of paragraph.text.normalize("NFC").matchAll(WORD_PATTERN2)) {
+      words.push({
+        word: match[0].toLowerCase().replace(/[’ʼ]/g, "'"),
+        paragraph: index,
+        start: match.index,
+        end: match.index + match[0].length
+      });
+    }
+  });
+  return words;
+}
+function shingleKey(words, at, size) {
+  let key = words[at].word;
+  for (let offset = 1;offset < size; offset += 1) {
+    key += ` ${words[at + offset].word}`;
+  }
+  return key;
+}
+function indexReference(references, size) {
+  const index = new Map;
+  references.forEach((reference, doc) => {
+    const words = reference.words;
+    for (let at = 0;at + size <= words.length; at += 1) {
+      const key = shingleKey(words, at, size);
+      const places = index.get(key);
+      if (places === undefined) {
+        index.set(key, [[doc, at]]);
+      } else {
+        places.push([doc, at]);
+      }
+    }
+  });
+  return index;
+}
+function runLength(source, from, target, at) {
+  let length = 0;
+  while (from + length < source.length && at + length < target.length && source[from + length].word === target[at + length].word) {
+    length += 1;
+  }
+  return length;
+}
+function alignments(source, doc, index, references, minWords) {
+  const words = source.words;
+  const found = [];
+  let reach = 0;
+  for (let at = 0;at + minWords <= words.length; at += 1) {
+    const places = index.get(shingleKey(words, at, minWords));
+    if (places === undefined) {
+      continue;
+    }
+    for (const [refDoc, refAt] of places.length > MAX_PLACES ? places.slice(0, MAX_PLACES) : places) {
+      const target = references[refDoc].words;
+      if (at > 0 && refAt > 0 && words[at - 1].word === target[refAt - 1].word) {
+        continue;
+      }
+      if (at + Math.min(words.length - at, target.length - refAt) <= reach) {
+        continue;
+      }
+      const length = runLength(words, at, target, refAt);
+      found.push({ doc, at, refDoc, refAt, length });
+      reach = Math.max(reach, at + length);
+    }
+  }
+  return found;
+}
+function sharedRuns(sources, references, minWords) {
+  const index = indexReference(references, minWords);
+  const runs = [];
+  sources.forEach((source, doc) => {
+    const found = alignments(source, doc, index, references, minWords).sort((a, b) => b.length - a.length || a.at - b.at || a.refDoc - b.refDoc || a.refAt - b.refAt);
+    const taken = new Uint8Array(source.words.length);
+    for (const alignment of found) {
+      let from = alignment.at;
+      const end = alignment.at + alignment.length;
+      while (from < end) {
+        while (from < end && taken[from] === 1) {
+          from += 1;
+        }
+        let to = from;
+        while (to < end && taken[to] === 0) {
+          to += 1;
+        }
+        if (to - from >= minWords) {
+          taken.fill(1, from, to);
+          runs.push({ doc, at: from, refDoc: alignment.refDoc, refAt: alignment.refAt + (from - alignment.at), length: to - from });
+        }
+        from = to;
+      }
+    }
+  });
+  return runs.sort((a, b) => a.doc - b.doc || a.at - b.at);
+}
+function describe(document, from, length) {
+  const words = document.words.slice(from, from + length);
+  const first = words[0];
+  const last = words[words.length - 1];
+  const labels = document.paragraphs.slice(first.paragraph, last.paragraph + 1).map((paragraph) => paragraph.label);
+  const pieces = [];
+  for (let paragraph = first.paragraph;paragraph <= last.paragraph; paragraph += 1) {
+    const text = document.paragraphs[paragraph].text.normalize("NFC");
+    const start = paragraph === first.paragraph ? first.start : 0;
+    const end = paragraph === last.paragraph ? last.end : text.length;
+    pieces.push(text.slice(start, end).replace(/\s+/g, " ").trim());
+  }
+  return {
+    from: labels[0],
+    to: labels[labels.length - 1],
+    text: pieces.join(" / ")
+  };
+}
+function count(value, noun) {
+  return `${formatNumber2(value)} ${value === 1 ? noun : `${noun}s`}`;
+}
+function place(location) {
+  return location.from === location.to ? location.from : `${location.from} to ${location.to}`;
+}
+function quote(text) {
+  const words = text.split(" ");
+  return words.length > QUOTE_WORDS ? `${words.slice(0, QUOTE_WORDS).join(" ")}…` : text;
+}
+function compareSimilarity(chapters, references, { minWords, label }) {
+  const sources = chapters.map((chapter) => ({ ...chapter, words: tokenizeDocument(chapter.paragraphs) }));
+  const targets = references.map((reference) => ({ ...reference, words: tokenizeDocument(reference.paragraphs) }));
+  const runs = sharedRuns(sources, targets, minWords);
+  const passages = runs.map((run) => {
+    const source = sources[run.doc];
+    const target = targets[run.refDoc];
+    const here = describe(source, run.at, run.length);
+    const there = describe(target, run.refAt, run.length);
+    return {
+      file: source.file,
+      from: here.from,
+      to: here.to,
+      words: run.length,
+      text: here.text,
+      reference: { file: target.file, from: there.from, to: there.to, text: there.text }
+    };
+  });
+  const warnings = passages.map((passage) => warn("similarity-shared-passage", `${passage.file} (${place(passage)}) shares ${count(passage.words, "word")} with ${passage.reference.file} (${place(passage.reference)}): "${quote(passage.text)}"`, passage.file));
+  const summary = sources.map((source) => {
+    const own = passages.filter((passage) => passage.file === source.file);
+    return {
+      file: source.file,
+      title: source.title ?? "",
+      words: source.words.length,
+      sharedWords: own.reduce((sum, passage) => sum + passage.words, 0),
+      passages: own.length
+    };
+  });
+  return {
+    ok: true,
+    errors: [],
+    warnings,
+    label,
+    minWords,
+    reference: {
+      files: targets.length,
+      words: targets.reduce((sum, target) => sum + target.words.length, 0)
+    },
+    words: summary.reduce((sum, chapter) => sum + chapter.words, 0),
+    sharedWords: summary.reduce((sum, chapter) => sum + chapter.sharedWords, 0),
+    chapters: summary,
+    passages
+  };
+}
+function percent(part, whole) {
+  if (whole === 0 || part === 0) {
+    return "0%";
+  }
+  const tenths = Math.max(1, Math.floor(part / whole * 1000));
+  return `${(tenths / 10).toFixed(tenths % 10 === 0 ? 0 : 1)}%`;
+}
+function formatSimilarity(report) {
+  const lines = [
+    `Similarity against ${report.label}: ${count(report.reference.words, "word")} in ${count(report.reference.files, "file")}, runs of ${report.minWords} or more shared words`,
+    ""
+  ];
+  for (const chapter of report.chapters) {
+    const passages = chapter.passages === 0 ? "no shared passages" : `${count(chapter.passages, "shared passage")}, ${count(chapter.sharedWords, "word")} (${percent(chapter.sharedWords, chapter.words)})`;
+    lines.push(`- ${chapter.file}: ${passages}`);
+  }
+  lines.push("", `Total: ${formatNumber2(report.sharedWords)} of ${count(report.words, "word")} shared (${percent(report.sharedWords, report.words)})`);
+  lines.push("Shared text is a place to look, not proof of copying: check each passage in context.");
+  return `${lines.join(`
+`)}
+`;
+}
+
+// src/config.js
 var SEVERITY_LEVELS = ["error", "warning", "off"];
 var TARGETED_COMMANDS = new Set(["knowledge", "add", "rename", "move", "remove"]);
 var TARGETED_FLAGS = { passes: ["start", "done"], progress: ["date"] };
@@ -6045,9 +6433,10 @@ function parseDefaults(raw, errors) {
       continue;
     }
     defaults[name] = parseCommandDefaults(command, item, label, errors);
-    if (name === "prose") {
+    const thresholds = { prose: proseThresholds, similarity: similarityOptions }[name];
+    if (thresholds !== undefined) {
       try {
-        proseThresholds(defaults[name]);
+        thresholds(defaults[name]);
       } catch (error) {
         errors.push(`${label}: ${error.message}`);
       }
@@ -6547,13 +6936,13 @@ function formatTimeline(timeline, totalChapters) {
     if (entry.orphanOf) {
       notes.push(`no chapter file for ${entry.orphanOf}`);
     }
-    lines.push(`- ${when}  ${entry.id}: ${entry.title}${describe(entry)}${notes.length === 0 ? "" : ` [${notes.join("; ")}]`}`);
+    lines.push(`- ${when}  ${entry.id}: ${entry.title}${describe2(entry)}${notes.length === 0 ? "" : ` [${notes.join("; ")}]`}`);
   }
   if (timeline.undated.length > 0) {
     lines.push("", "Undated (reading order):");
     for (const entry of timeline.undated) {
       const orphan = entry.orphanOf ? ` [no chapter file for ${entry.orphanOf}]` : "";
-      lines.push(`- ${entry.id}: ${entry.title}${describe(entry)}${orphan}`);
+      lines.push(`- ${entry.id}: ${entry.title}${describe2(entry)}${orphan}`);
     }
   }
   lines.push("", "POV balance:");
@@ -6589,7 +6978,7 @@ function formatTimeline(timeline, totalChapters) {
 `)}
 `;
 }
-function describe(entry) {
+function describe2(entry) {
   const parts = [];
   if (entry.pov) {
     parts.push(`POV ${entry.pov}`);
@@ -6674,9 +7063,15 @@ function relationshipDiagram(project) {
       }
     }
   }
-  const deceased = characters.filter((character) => character.status === "deceased").map((character) => nodeId(character.id));
+  const chronology = chapterChronology(project);
+  const lifelines = characters.map((character) => ({ id: nodeId(character.id), lifeline: characterLifeline(character, chronology) }));
+  const deceased = lifelines.filter(({ lifeline }) => lifeline.deadAtEnd).map(({ id }) => id);
+  const revived = lifelines.filter(({ lifeline }) => !lifeline.deadAtEnd && lifeline.events.some((event) => event.type === "revival")).map(({ id }) => id);
   if (deceased.length > 0) {
     lines.push("  classDef deceased stroke-dasharray: 4 4,color:#888", `  class ${deceased.join(",")} deceased`);
+  }
+  if (revived.length > 0) {
+    lines.push("  classDef revived stroke-width:3px", `  class ${revived.join(",")} revived`);
   }
   return `${lines.join(`
 `)}
@@ -7964,6 +8359,7 @@ var CHARACTER_STATUSES = new Set(["alive", "deceased", "unknown", "missing", "cu
 var ARC_TYPES = new Set(["main", "subplot", "character", "thematic"]);
 var ARC_STATUSES = new Set(["planned", "in-progress", "resolved"]);
 var CHAPTER_STATUSES = new Set(["outline", "draft", "revised", "final", "complete"]);
+var CHARACTER_ARC_TYPES = new Set(["change-positive", "change-negative", "flat"]);
 var DRAFT_MODES = new Set(["discovered", "outlined"]);
 var SCENE_STATUSES = new Set(["outline", "draft", "revised", "final", "complete"]);
 var FACTION_TYPES = new Set(["family", "guild", "government", "military", "religion", "company", "community", "criminal", "other"]);
@@ -8614,7 +9010,7 @@ function validateProjectOf(project) {
   validateClues(project, errors);
   validateExemptions(project, errors, warnings);
   validateGlossaryTerms(project, errors);
-  validateStyleSheet(project, errors);
+  validateStyleSheet(project, errors, warnings);
   validateMatter(project, errors, warnings);
   validateResearch(project, errors, warnings);
   validateProgressLog(project, errors);
@@ -9524,8 +9920,8 @@ function labelsIn(root, label) {
   const project = scanProject(root);
   return paragraphLabels(htmlBook(manuscriptParts(project, `read labels from ${label}`)));
 }
-function withProjectAtGitRef(root, ref, read) {
-  const { git } = gitAtRef(root, ref);
+function withProjectAtGitRef(root, ref, read, flag = "compare --ref") {
+  const { git } = gitAtRef(root, ref, flag);
   const blobs = git(["ls-tree", "-r", "-z", ref, "--", "."]).split("\x00").filter((record) => record !== "").map((record) => {
     const tab = record.indexOf("\t");
     const [mode, type, hash] = record.slice(0, tab).split(" ");
@@ -9561,15 +9957,15 @@ function catBlobs(root, hashes) {
   }
   return contents;
 }
-function gitFailure(error) {
+function gitFailure(error, flag) {
   if (error && error.code === "ENOENT") {
-    return "compare --ref needs git, which was not found on PATH";
+    return `${flag} needs git, which was not found on PATH`;
   }
   const stderr = String(error?.stderr ?? "").trim();
   if (stderr === "" || /not a git repository/i.test(stderr)) {
-    return "compare --ref needs the project inside a git repository";
+    return `${flag} needs the project inside a git repository`;
   }
-  return `compare --ref could not run git: ${stderr.split(/\r?\n/)[0]}`;
+  return `${flag} could not run git: ${stderr.split(/\r?\n/)[0]}`;
 }
 function comparableChapter(id, markdown) {
   const prose = chapterProse(markdown.body);
@@ -9581,7 +9977,7 @@ function comparableChapter(id, markdown) {
   };
 }
 var UNSAFE_GIT_REF = /^-|[\u0000-\u001f\u007f:]/u;
-function gitAtRef(root, ref) {
+function gitAtRef(root, ref, flag = "compare --ref") {
   if (UNSAFE_GIT_REF.test(ref)) {
     throw usageError(`Unsupported git ref: ${ref}`);
   }
@@ -9590,7 +9986,7 @@ function gitAtRef(root, ref) {
   try {
     prefix = git(["rev-parse", "--show-prefix"]).trim();
   } catch (error) {
-    throw projectError(gitFailure(error));
+    throw projectError(gitFailure(error, flag));
   }
   try {
     git(["rev-parse", "--verify", "--quiet", `${ref}^{commit}`]);
@@ -9622,6 +10018,132 @@ function chaptersAtGitRef(root, ref, warnings) {
       return comparableChapter(id, { data: {}, body: raw });
     }
   });
+}
+function similarityReport(root, options = {}) {
+  const against = typeof options.against === "string" ? options.against.trim() : "";
+  if (against === "") {
+    throw usageError("similarity needs --against <file|folder|git-ref>: the text to compare the chapters with");
+  }
+  const { minWords } = similarityOptions(options);
+  const project = scanProject(root);
+  assertProjectParses(project, "check similarity");
+  const chapters = labelledChapters(project, (file) => relative2(project, file));
+  const cwd = options.cwd ?? process.cwd();
+  const target = path11.resolve(options.againstFromProject ? project.root : cwd, against);
+  const warnings = [];
+  let references;
+  let label;
+  if (lstatIfExists(target) !== null) {
+    const real = canonicalPath(target);
+    const self = canonicalPath(project.root);
+    if (real === self) {
+      throw usageError(`similarity --against ${against} is this project: point it at other text, or at a git ref for an earlier draft`);
+    }
+    label = against;
+    const own = new Set(project.chapters.map((chapter) => canonicalPath(chapter.file)));
+    references = referenceDocuments(real, (file) => displayPath(cwd, target, real, file), self).filter((reference) => !own.has(canonicalPath(reference.path)));
+  } else {
+    label = `git ref ${against}`;
+    try {
+      references = withProjectAtGitRef(project.root, against, (oldRoot) => {
+        if (!fs7.existsSync(path11.join(oldRoot, "story.md"))) {
+          throw projectError(`No story project (story.md) at git ref ${against}`);
+        }
+        const old = scanProject(oldRoot);
+        assertProjectParses(old, `read chapters at git ref ${against}`);
+        return labelledChapters(old, (file) => `${against}:${path11.relative(oldRoot, file).split(path11.sep).join("/")}`);
+      }, "similarity --against");
+    } catch (error) {
+      const reason = error.exitCode === EXIT_CODES.usage ? "no git ref has that name" : /needs the project inside a git repository/.test(error.message) ? "the project is not in a git repository, so it cannot be a git ref" : /not found on PATH/.test(error.message) ? "git was not found on PATH to read it as a git ref" : null;
+      if (reason !== null) {
+        throw usageError(`similarity --against ${against} is not a file or folder, and ${reason}`);
+      }
+      throw error;
+    }
+  }
+  const report = compareSimilarity(chapters, references, { minWords, label });
+  if (report.reference.words === 0) {
+    warnings.push(warn("similarity-no-reference-text", `${label} has no text to compare with: check --against names the files you meant`));
+  }
+  return { ...report, warnings: [...warnings, ...report.warnings] };
+}
+function displayPath(cwd, typed, real, file) {
+  const inside = path11.relative(real, file);
+  const shown = path11.relative(cwd, inside === "" ? typed : path11.join(typed, inside));
+  return shown.split(path11.sep).join("/") || path11.basename(file);
+}
+function labelledChapters(project, fileName) {
+  if (project.chapters.length === 0) {
+    return [];
+  }
+  let book;
+  try {
+    book = bookChapters(project, "check similarity");
+  } catch {
+    return project.chapters.map((chapter) => ({
+      ...textDocument(chapter.file, fileName(chapter.file), chapterProse(readMarkdown(chapter.file, project.root).body)),
+      title: chapter.title ?? ""
+    }));
+  }
+  const { meta, chapters } = book;
+  const html = htmlBook({ title: project.title, meta, front: [], chapters, back: [] });
+  return html.parts.map((part, index) => ({
+    file: fileName(project.chapters[index].file),
+    path: project.chapters[index].file,
+    title: chapters[index].title,
+    paragraphs: labelledParagraphs(part).filter((entry) => entry !== null).map((entry) => ({ label: entry.label, text: entry.paragraph.text }))
+  }));
+}
+var REFERENCE_TEXT_FILE = /\.(?:md|markdown|txt)$/i;
+function referenceDocuments(target, display, self) {
+  if (!fs7.statSync(target).isDirectory()) {
+    return [textDocument(target, display(target))];
+  }
+  const documents = [];
+  for (const entry of referenceEntries(target, self)) {
+    if (entry.project) {
+      const other = scanProject(entry.path);
+      assertProjectParses(other, `read chapters in ${display(entry.path)}`);
+      documents.push(...labelledChapters(other, display));
+    } else {
+      documents.push(textDocument(entry.path, display(entry.path)));
+    }
+  }
+  return documents;
+}
+function referenceEntries(dir, self, depth = 0, collected = []) {
+  if (fs7.existsSync(path11.join(dir, "story.md"))) {
+    if (canonicalPath(dir) !== self) {
+      collected.push({ project: true, path: dir });
+    }
+    return collected;
+  }
+  const entries = fs7.readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+  for (const entry of entries) {
+    if (entry.name.startsWith(".") || SKIPPED_SCAN_DIRECTORIES.has(entry.name) || entry.name === "_index.md") {
+      continue;
+    }
+    const fullPath = path11.join(dir, entry.name);
+    if (entry.isDirectory() && depth < MAX_SCAN_DEPTH) {
+      referenceEntries(fullPath, self, depth + 1, collected);
+    } else if (entry.isFile() && REFERENCE_TEXT_FILE.test(entry.name)) {
+      collected.push({ project: false, path: fullPath });
+      if (collected.length > MAX_SCAN_FILES) {
+        throw projectError(`Too many text files in ${dir}: the reference exceeds the ${MAX_SCAN_FILES} file limit`);
+      }
+    }
+  }
+  return collected;
+}
+function textDocument(file, name, prose = null) {
+  let text = prose ?? readTextFile(file).replace(/^﻿/, "");
+  text = text.replace(/\r\n?/g, `
+`);
+  if (prose === null && /\.(?:md|markdown)$/i.test(file)) {
+    text = chapterProse(withoutLeadingFrontmatter(text));
+  }
+  const paragraphs = text.split(/\n\s*\n/).map((paragraph) => paragraph.replace(/\s+/g, " ").trim()).filter((paragraph) => paragraph !== "").map((paragraph, index) => ({ label: `p${index + 1}`, text: paragraph }));
+  return { file: name, path: file, paragraphs };
 }
 function projectProgress(root, options = {}) {
   const today = options.date === undefined ? localDate() : String(options.date).trim();
@@ -9763,19 +10285,19 @@ function passageErrors(project) {
 function proseReport(root, options = {}) {
   const thresholds = proseThresholds(options);
   if (options.passage !== undefined) {
-    return prosePassageReport(root, options.passage, thresholds);
+    return prosePassageReport(root, options.passage, thresholds, options);
   }
   const project = scanProject(root);
   const errors = [...project.fileErrors];
   const warnings = [];
   const names = [...project.characters.map((character) => character.name), ...existingNames(project).map((entry) => entry.name)];
   const rules = proseRules(project.styleSheet?.data, names);
+  const profile = proseBaseline(project, rules, options, warnings);
   const chapters = [];
   for (const chapter of project.chapters) {
     const label = relative2(project, chapter.file);
-    const analysis = analyzeChapter(chapterProse(readMarkdown(chapter.file, project.root).body, " "), rules);
-    chapters.push({ file: label, title: chapter.title, analysis });
-    warnings.push(...chapterFindings(label, analysis, thresholds));
+    const prose = chapterProse(readMarkdown(chapter.file, project.root).body, " ");
+    chapters.push(lintProse(label, chapter.title, prose, rules, thresholds, profile, warnings));
   }
   const phrases = repeatedPhrases(chapters.map((chapter) => chapter.analysis));
   const similar = similarNames(project.characters);
@@ -9791,28 +10313,102 @@ function proseReport(root, options = {}) {
     chapters,
     phrases,
     similarNames: similar,
-    thresholds: thresholdSummary(thresholds)
+    thresholds: thresholdSummary(thresholds),
+    baseline: profile
   };
+}
+function lintProse(label, title, prose, rules, thresholds, profile, warnings) {
+  const analysis = analyzeChapter(prose, rules);
+  const compared = profile !== null && profile.usable;
+  warnings.push(...chapterFindings(label, analysis, thresholds, { baseline: compared }));
+  if (profile === null) {
+    return { file: label, title, analysis };
+  }
+  const figures = baselineFigures(analysis, profile, contentWords(prose, rules));
+  warnings.push(...baselineFindings(label, analysis, figures, profile));
+  return { file: label, title, analysis, baseline: figures };
+}
+function proseBaseline(project, rules, options, warnings) {
+  const listed = asArray(project?.styleSheet?.data?.samples).filter((entry) => typeof entry === "string" && entry.trim() !== "");
+  const wanted = options.baseline === undefined ? listed.length > 0 : isTruthy(options.baseline);
+  if (!wanted) {
+    return null;
+  }
+  if (listed.length === 0) {
+    throw usageError(`prose --baseline needs samples in ${STYLE_SHEET_FILE}: list files or folders of your own prose, such as samples: [../book-one]`);
+  }
+  const samples = [];
+  const self = canonicalPath(project.root);
+  const own = new Set(project.chapters.map((chapter) => canonicalPath(chapter.file)));
+  for (const entry of listed) {
+    const sample = entry.trim();
+    if (path11.isAbsolute(sample) || /^[A-Za-z]:/.test(sample)) {
+      warnings.push(warn("style-sample-missing", `${STYLE_SHEET_FILE} samples entry ${sample} must be a path relative to the project folder, such as ../book-one, so it is left out`, STYLE_SHEET_FILE));
+      continue;
+    }
+    const problem = sampleProblem(project, sample);
+    if (problem !== null) {
+      warnings.push(problem);
+      continue;
+    }
+    const target = path11.resolve(project.root, sample);
+    const real = canonicalPath(target);
+    let documents;
+    try {
+      documents = referenceDocuments(real, (file) => displayPath(project.root, target, real, file), self).filter((document) => !own.has(canonicalPath(document.path)));
+    } catch (error) {
+      warnings.push(warn("style-sample-unreadable", `${STYLE_SHEET_FILE} samples entry ${sample} cannot be read, so it is left out: ${error.message}`, STYLE_SHEET_FILE));
+      continue;
+    }
+    for (const document of documents) {
+      const prose = document.paragraphs.map((paragraph) => paragraph.text).join(`
+
+`);
+      samples.push({ file: document.file, analysis: analyzeChapter(prose, rules), sentenceLengths: sentenceLengths(prose), contentWords: contentWords(prose, rules) });
+    }
+  }
+  const profile = baselineProfile(samples);
+  if (!profile.usable) {
+    warnings.push(warn("prose-baseline-small", `${STYLE_SHEET_FILE} samples hold ${profile.narrationWords} narration words, too few to compare with (at least 2000): the fixed filter-word and adverb limits apply instead`, STYLE_SHEET_FILE));
+  }
+  return profile;
+}
+function sampleProblem(project, sample) {
+  const target = path11.resolve(project.root, sample);
+  if (lstatIfExists(target) === null) {
+    return warn("style-sample-missing", `${STYLE_SHEET_FILE} samples entry ${sample} names no file or folder in reach of the project`, STYLE_SHEET_FILE);
+  }
+  const real = canonicalPath(target);
+  const self = canonicalPath(project.root);
+  const chapters = path11.join(self, "chapters");
+  if (real === self || real === chapters || isPathInside(chapters, real)) {
+    return warn("style-sample-own-chapters", `${STYLE_SHEET_FILE} samples entry ${sample} names this project's own chapters, which are what the samples are compared with: list an earlier book or approved drafts kept elsewhere`, STYLE_SHEET_FILE);
+  }
+  return null;
 }
 function thresholdSummary(thresholds) {
   return { maxFilterWords: thresholds.filterPerThousand, maxAdverbs: thresholds.adverbsPerThousand, maxBookisms: thresholds.maxBookisms };
 }
-function prosePassageReport(root, passage, thresholds) {
+function prosePassageReport(root, passage, thresholds, options = {}) {
   const project = root === null ? null : scanProject(root);
   const errors = project === null ? [] : passageErrors(project);
   const names = project === null ? [] : [...project.characters.map((character) => character.name), ...existingNames(project).map((entry) => entry.name)];
-  const analysis = analyzeChapter(passageProse(passage), proseRules(project?.styleSheet?.data, names));
+  const rules = proseRules(project?.styleSheet?.data, names);
+  const warnings = [];
+  const profile = project === null ? null : proseBaseline(project, rules, options, warnings);
+  const chapter = lintProse(PASSAGE_LABEL, "passage", passageProse(passage), rules, thresholds, profile, warnings);
   return {
     ok: errors.length === 0,
     errors,
-    warnings: chapterFindings(PASSAGE_LABEL, analysis, thresholds),
+    warnings,
     passage: true,
     styleSheet: Boolean(project?.styleSheet),
-    words: analysis.words,
-    chapters: [{ file: PASSAGE_LABEL, title: "passage", analysis }],
-    phrases: repeatedPhrases([analysis]),
+    words: chapter.analysis.words,
+    chapters: [chapter],
+    phrases: repeatedPhrases([chapter.analysis]),
     similarNames: [],
-    thresholds: thresholdSummary(thresholds)
+    thresholds: thresholdSummary(thresholds),
+    baseline: profile
   };
 }
 function exportManuscript(root, options = {}) {
@@ -11165,7 +11761,7 @@ function styleSheet() {
     "allow-words": []
   })}# Style Sheet
 
-The book's house decisions, kept the way a copyeditor keeps them. Read this before drafting or revising prose. \`story prose\` enforces the lists in the frontmatter: \`dialect\` (british, american, or unspecified) flags the other dialect's common spellings, each \`preferred\` entry flags its \`avoid\` form, \`watch-words\` are counted in every chapter, and \`allow-words\` silences a built-in filter word or adverb.
+The book's house decisions, kept the way a copyeditor keeps them. Read this before drafting or revising prose. \`story prose\` enforces the lists in the frontmatter: \`dialect\` (british, american, or unspecified) flags the other dialect's common spellings, each \`preferred\` entry flags its \`avoid\` form, \`watch-words\` are counted in every chapter, and \`allow-words\` silences a built-in filter word or adverb. Add a \`samples\` list of your own prose (\`../book-one\`, approved chapters) and \`story prose\` compares each chapter with it instead of fixed limits.
 
 ## Voice
 
@@ -12946,6 +13542,8 @@ function validateTextFields(project, errors) {
       const value = data?.[field];
       if (typeof value === "number" || typeof value === "boolean") {
         errors.push(err("field-not-text", `${label} frontmatter field ${field} must be text: quote it as ${field}: "${value}"`, label));
+      } else if (Array.isArray(value) && !errors.some((error) => error.file === label && error.message.includes(` ${field} `))) {
+        errors.push(err("field-not-text", `${label} frontmatter field ${field} must be text, not a list`, label));
       }
     }
   };
@@ -12967,7 +13565,10 @@ function validateStoryFrontmatter(project, errors) {
   requireScalar(data, "title", "story.md", errors);
   requireScalar(data, "genre", "story.md", errors);
   requireScalar(data, "status", "story.md", errors);
-  requireArray(data, "themes", "story.md", errors);
+  validateStringArray(data, "themes", "story.md", errors);
+  validateStringArray(data, "contact", "story.md", errors);
+  validateStringArray(data, "authors", "story.md", errors);
+  validateStringArray(data, "keywords", "story.md", errors);
   requireScalar(data, "pov", "story.md", errors);
   requireScalar(data, "tense", "story.md", errors);
   validateEnum(data, "status", STORY_STATUSES, "story.md", errors);
@@ -13091,6 +13692,7 @@ function validateCharacters(project, errors, warnings) {
     }
     validateEntityId(character.id, label, errors);
     requireFields(data, ["name", "role", "status"], label, errors);
+    validateEnum(data, "arc-type", CHARACTER_ARC_TYPES, label, errors);
     requireScalar(data, "name", label, errors);
     requireScalar(data, "role", label, errors);
     requireScalar(data, "status", label, errors);
@@ -13127,6 +13729,10 @@ function validateLocations(project, errors, warnings) {
     const data = readValidationData(location.file, project.root, label, errors);
     if (!data) {
       continue;
+    }
+    requireScalar(data, "population", label, errors);
+    if (typeof data.population === "boolean" || typeof data.population === "number" && !Number.isInteger(data.population)) {
+      errors.push(err("field-not-integer", `${label} frontmatter field population must be a whole number or text, such as 300 or "about 300"`, label));
     }
     validateEntityId(location.id, label, errors);
     requireFields(data, ["name", "type"], label, errors);
@@ -13220,6 +13826,7 @@ function validateArcs(project, errors) {
     if (!data) {
       continue;
     }
+    validateStringArray(data, "mice-threads", label, errors);
     validateEntityId(arc.id, label, errors);
     requireFields(data, ["name", "type", "status"], label, errors);
     requireScalar(data, "name", label, errors);
@@ -13379,7 +13986,7 @@ function validateScenes(project, errors) {
   }
 }
 var STATE_ENTRY_KEYS = {
-  "character-state": ["character", "location"],
+  "character-state": ["character", "location", "physical", "emotional", "knowledge"],
   "object-state": ["artifact", "owner", "location", "status", "since"],
   "knowledge-state": ["character", "knows", "learned-in", "fact"]
 };
@@ -13402,6 +14009,11 @@ function validateContinuityState(project, errors, warnings) {
         continue;
       }
       warnNearMissKeys(entry, keys, `${label} ${list}[${index}]`, warnings, label);
+      for (const [key, value] of Object.entries(entry)) {
+        if (keys.includes(key) && Array.isArray(value)) {
+          errors.push(err("field-not-scalar", `${label} ${list}[${index}] ${key} must be a single value, not a list`, label));
+        }
+      }
       if (list === "object-state" && entry.status !== undefined && !ARTIFACT_STATUSES.has(entry.status)) {
         errors.push(err("unsupported-value", `${label} ${list}[${index}] status must be one of ${[...ARTIFACT_STATUSES].join(", ")}, got ${entry.status}`, label));
       }
@@ -13525,7 +14137,7 @@ function validateGlossaryTerms(project, errors) {
     validateStringArray(data, "aliases", label, errors);
   }
 }
-function validateStyleSheet(project, errors) {
+function validateStyleSheet(project, errors, warnings) {
   if (project.styleSheet === null) {
     return;
   }
@@ -13553,6 +14165,21 @@ function validateStyleSheet(project, errors) {
   });
   validateStringArray(data, "watch-words", label, errors);
   validateStringArray(data, "allow-words", label, errors);
+  validateStringArray(data, "samples", label, errors);
+  for (const entry of asArray(data.samples)) {
+    if (typeof entry !== "string" || entry.trim() === "") {
+      continue;
+    }
+    const sample = entry.trim();
+    if (path11.isAbsolute(sample) || /^[A-Za-z]:/.test(sample)) {
+      errors.push(err("field-invalid-items", `${label} samples entry ${sample} must be a path relative to the project folder, such as ../book-one`, label));
+    } else {
+      const problem = sampleProblem(project, sample);
+      if (problem !== null) {
+        warnings.push(problem);
+      }
+    }
+  }
 }
 function validateDeadline(data, errors) {
   if (data.deadline !== undefined) {
@@ -13727,11 +14354,6 @@ function validateEntityId(id, label, errors) {
 function requireScalar(data, field, label, errors, file = label) {
   if (data[field] !== undefined && (Array.isArray(data[field]) || typeof data[field] === "object")) {
     errors.push(err("field-not-scalar", `${label} frontmatter field ${field} must be a scalar`, file));
-  }
-}
-function requireArray(data, field, label, errors) {
-  if (data[field] !== undefined && !Array.isArray(data[field])) {
-    errors.push(err("field-not-list", `${label} frontmatter field ${field} must be a list`, label));
   }
 }
 function requireInteger(data, field, label, errors, minimum) {
@@ -14776,6 +15398,25 @@ var COMMANDS = [
     }
   },
   {
+    name: "similarity",
+    usage: "similarity [path]",
+    summary: [
+      "Find passages of chapter prose that share a run of",
+      "words with other text (--against a file, folder, or",
+      "git ref); advisory, never proof of copying"
+    ],
+    project: "positional",
+    options: ["against", "min-words", "json"],
+    run({ parsed, io, cwd, root, overrides, defaulted }) {
+      const report = applySeverity(similarityReport(root(), { ...parsed.options, cwd, againstFromProject: defaulted.has("against") }), overrides);
+      if (wantsJson(parsed)) {
+        return reportJson(io, "similarity", report);
+      }
+      io.stdout.write(formatSimilarity(report));
+      return reportResult(io, report, "Similarity check complete", "Similarity check failed");
+    }
+  },
+  {
     name: "progress",
     usage: "progress [path]",
     summary: [
@@ -14825,7 +15466,7 @@ var COMMANDS = [
       "- lints a passage from stdin"
     ],
     project: "positional",
-    options: ["json", "max-filter-words", "max-adverbs", "max-bookisms"],
+    options: ["json", "max-filter-words", "max-adverbs", "max-bookisms", "baseline"],
     run({ parsed, io, cwd, root, overrides }) {
       const report = applySeverity(parsed.positionals[1] === STDIN_ARG ? proseReport(passageRoot(parsed, cwd, false), { ...parsed.options, passage: pipedText(io, "prose") }) : proseReport(root(), parsed.options), overrides);
       if (wantsJson(parsed)) {
@@ -14970,7 +15611,7 @@ var COMMANDS = [
         io.stdout.write(`Updated revision-passes in story.md
 `);
       }
-      const where = shellWord(displayPath(parsed));
+      const where = shellWord(displayPath2(parsed));
       io.stdout.write(formatPasses(result.passes, where === "." ? "story passes" : `story passes ${where}`));
       return 0;
     }
@@ -14982,7 +15623,7 @@ var COMMANDS = [
     project: "positional",
     options: ["actionable", "json"],
     run({ parsed, io, root, overrides }) {
-      const report = projectReport(root(), { displayPath: displayPath(parsed), overrides });
+      const report = projectReport(root(), { displayPath: displayPath2(parsed), overrides });
       if (wantsJson(parsed)) {
         return reportProjectJson(io, "report", report);
       }
@@ -14997,7 +15638,7 @@ var COMMANDS = [
     project: "positional",
     options: ["json"],
     run({ parsed, io, root, overrides }) {
-      const report = projectActions(root(), { displayPath: displayPath(parsed), overrides });
+      const report = projectActions(root(), { displayPath: displayPath2(parsed), overrides });
       if (wantsJson(parsed)) {
         return reportProjectJson(io, "next", report);
       }
@@ -15012,7 +15653,7 @@ var COMMANDS = [
     project: "positional",
     options: ["json"],
     run({ parsed, io, root, overrides }) {
-      const report = projectActions(root(), { displayPath: displayPath(parsed), overrides });
+      const report = projectActions(root(), { displayPath: displayPath2(parsed), overrides });
       if (wantsJson(parsed)) {
         return reportProjectJson(io, "doctor", report);
       }
@@ -15197,7 +15838,7 @@ function writeFindings(io, result) {
   printFindings(io, result);
   return result.ok ? EXIT_CODES.ok : EXIT_CODES.findings;
 }
-function displayPath(parsed) {
+function displayPath2(parsed) {
   const flag = parsed.options.path;
   return parsed.positionals[1] ?? (Array.isArray(flag) ? flag[flag.length - 1] : flag) ?? ".";
 }
@@ -15279,7 +15920,7 @@ function findingLine(finding) {
 }
 
 // src/version.js
-var VERSION = "0.16.0";
+var VERSION = "0.18.0";
 
 // src/cli.js
 var COMMANDS_BY_NAME = new Map(COMMANDS.map((command) => [command.name, command]));
@@ -15382,7 +16023,7 @@ Run story --help to list commands.
     const config = command.project === "none" ? null : projectConfig(command, configRoot(cwd, parsed, root));
     configured = config === null ? [] : applyDefaults(config, name, parsed.options).map((key) => [key, parsed.options[key]]);
     const overrides = config === null ? NO_OVERRIDES : findingOverrides(config);
-    return command.run({ parsed, io, cwd, root, overrides });
+    return command.run({ parsed, io, cwd, root, overrides, defaulted: new Set(configured.map(([key]) => key)) });
   } catch (error) {
     const message = `${describeError(error, io.cwd ?? process.cwd())}${configuredHint(error, configured)}`;
     const exitCode = exitCodeFor(error);

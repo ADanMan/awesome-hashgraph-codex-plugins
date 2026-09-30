@@ -1,6 +1,6 @@
 {
   "name": "story-skills",
-  "version": "0.16.0",
+  "version": "0.18.0",
   "description": "Agent skills and a companion CLI for planning, tracking, and drafting fiction in markdown.",
   "type": "module",
   "packageManager": "bun@1.4.2",
@@ -24,6 +24,7 @@
   ],
   "scripts": {
     "build:fallback": "node scripts/build-fallback.js",
+    "build:binaries": "node scripts/build-binaries.js",
     "check:metadata": "node scripts/check-metadata.js",
     "check:fallback": "node scripts/check-fallback.js",
     "check:evals": "node scripts/check-evals.js",

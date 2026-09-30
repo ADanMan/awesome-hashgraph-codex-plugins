@@ -104,7 +104,7 @@ await writeFile("report.csv", csv);
 <details>
 <summary>Claude Code</summary>
 
-下载并解压 [0.2.3 源码](https://github.com/lennney/stop-that-shit/archive/refs/tags/0.2.3.zip)，在仓库根目录执行：
+下载并解压 [0.2.4 源码](https://github.com/lennney/stop-that-shit/archive/refs/tags/0.2.4.zip)，在仓库根目录执行：
 
 ```bash
 claude plugin validate .
@@ -124,7 +124,7 @@ claude plugin install stop-that-shit@stop-that-shit
 <summary>Codex</summary>
 
 ```bash
-codex plugin marketplace add lennney/stop-that-shit --ref 0.2.3
+codex plugin marketplace add lennney/stop-that-shit --ref 0.2.4
 codex plugin add stop-that-shit@stop-that-shit
 ```
 
