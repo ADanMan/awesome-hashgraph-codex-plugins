@@ -22,7 +22,7 @@ Jev chooses each next operation: search, open a particular post or profile, read
   <img src="https://raw.githubusercontent.com/socai-io/jev-social/main/docs/platforms/linkedin.svg" height="32" alt="LinkedIn">
 </p>
 
-[⭐ Star Jev Social](https://github.com/socai-io/jev-social) · [Watch the recorded run](https://socai-io.github.io/jev-social/recorded-run/) · [Live site](https://socai-io.github.io/jev-social/) · [Social research guide](https://socai-io.github.io/jev-social/social-research/) · [Security and data flow](SECURITY.md) · [Real 64-second Jev report](docs/example-report.md) · [Recorded TikTok video evidence](docs/tiktok-evidence.md) · [Discord](https://discord.gg/CpQdA7bwt8) · [Jev](https://typesafe.ai/)
+[⭐ Star Jev Social](https://github.com/socai-io/jev-social) · [OpenAI Decisions API: where Jev Social fits](#decision-apis-are-becoming-a-category) · [Watch the recorded run](https://socai-io.github.io/jev-social/recorded-run/) · [Live site](https://socai-io.github.io/jev-social/) · [Social research guide](https://socai-io.github.io/jev-social/social-research/) · [Security and data flow](SECURITY.md) · [Real 64-second Jev report](docs/example-report.md) · [Recorded TikTok video evidence](docs/tiktok-evidence.md) · [Discord](https://discord.gg/CpQdA7bwt8) · [Jev](https://typesafe.ai/)
 
 ## Try it
 
@@ -38,6 +38,18 @@ With the default OpenRouter provider, onboarding prompts for the OpenRouter key.
 ![Earlier routing-only demo](https://raw.githubusercontent.com/socai-io/jev-social/main/docs/jev-social.gif)
 
 The recording above shows the earlier routing-only prototype. Current runs include a history of every operation chosen by Jev.
+
+## Decision APIs are becoming a category
+
+[OpenAI introduced the Decisions API in its DevDay 2026 recap](https://openai.com/zh-Hans-CN/index/devday-2026-recap/). That makes narrow, machine-consumable decisions a broader API category. Jev Social demonstrates the layer that still has to exist after a decision: rebuild choices from live browser state, execute one bounded operation, and retain the observed evidence.
+
+Jev Social currently uses TypeSafe Jev through OpenRouter. OpenAI Decisions API support is not yet wired; compatibility will only be claimed after a public request and response contract can be tested end to end.
+
+| Layer | Jev Social boundary |
+| --- | --- |
+| Decide | TypeSafe Jev selects one typed operation from the current allowlist |
+| Execute | `socai CLI` runs that exact operation in the user's authenticated Chrome session |
+| Verify | The next choice set is rebuilt from captured posts, comments, media, or an explicit failure state |
 
 ## Why this pairing
 

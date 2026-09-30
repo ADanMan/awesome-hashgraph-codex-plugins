@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-09-30",
-  "total": 244,
+  "total": 245,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -1678,6 +1678,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/BestLemoon/codex-seo/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Codex Tools Bridge",
+      "url": "https://github.com/KunHcz/codex-tools-bridge",
+      "owner": "KunHcz",
+      "repo": "codex-tools-bridge",
+      "description": "Experimental macOS-first MCP bridge that lets ChatGPT Web call native local Codex tools while preserving native permission context, with no second model loop.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/KunHcz/codex-tools-bridge/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Codex Usage Tracker",

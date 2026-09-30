@@ -2473,6 +2473,21 @@
       "icon": "./plugins/BestLemoon/codex-seo/assets/icon.svg"
     },
     {
+      "name": "codex-tools-bridge",
+      "displayName": "Codex Tools Bridge",
+      "source": {
+        "source": "local",
+        "path": "./plugins/KunHcz/codex-tools-bridge"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Experimental macOS-first MCP bridge that lets ChatGPT Web call native local Codex tools while preserving native permission context, with no second model loop.",
+      "icon": "./plugins/KunHcz/codex-tools-bridge/assets/icon.svg"
+    },
+    {
       "name": "codex-usage-tracker",
       "displayName": "Codex Usage Tracker",
       "source": {
